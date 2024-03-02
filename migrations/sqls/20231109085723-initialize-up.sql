@@ -12,7 +12,11 @@ CREATE TABLE IF NOT EXISTS public.users
     email text COLLATE pg_catalog."default",
     password text COLLATE pg_catalog."default",
     roles text COLLATE pg_catalog."default",
-    value text COLLATE pg_catalog."default"
+    persona text COLLATE pg_catalog."default",
+    qualify text COLLATE pg_catalog."default",
+    image text COLLATE pg_catalog."default",
+    time text COLLATE pg_catalog."default",
+
 )
 
 TABLESPACE pg_default;
@@ -53,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.tutor_info
     t_name text COLLATE pg_catalog."default",
     t_lname text COLLATE pg_catalog."default",
     t_gender text COLLATE pg_catalog."default",
+    subject text COLLATE pg_catalog."default",
     t_reg_id integer NOT NULL,
     CONSTRAINT tutor_info_pkey PRIMARY KEY (t_id)
 )
@@ -117,6 +122,9 @@ CREATE TABLE IF NOT EXISTS public.qualify_info
     t_degreeyear text COLLATE pg_catalog."default",
     t_institute text COLLATE pg_catalog."default",
     t_reg_id integer NOT NULL,
+    city text COLLATE pg_catalog."default",
+    qualify_value text COLLATE pg_catalog."default",
+    year_end text COLLATE pg_catalog."default",
     CONSTRAINT qualify_info_pkey PRIMARY KEY (id)
 )
 

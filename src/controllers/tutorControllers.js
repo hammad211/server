@@ -12,8 +12,8 @@ module.exports.addNewTutor = async (req, res) => {    //add new tutor
       return res.status(400).send('Data already exists');
     }
 
-    const insertData = 'INSERT INTO tutor_info (t_name, t_lname, t_address, t_city, t_gender, t_reg_id, number, subject, value) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *';
-    const insertValue = [t_name, t_lname, t_address, t_city, t_gender, tRegId, number, subject, value];
+    const insertData = 'INSERT INTO tutor_info (t_name, t_lname, t_address, t_city, t_gender, t_reg_id, number, subject) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *';
+    const insertValue = [t_name, t_lname, t_address, t_city, t_gender, tRegId, number, subject];
     const result = await client.query(insertData, insertValue);
 
     const updateUserTable = 'UPDATE users SET persona = $1 WHERE id = $2';
