@@ -28,8 +28,7 @@ module.exports.singleStudentInfo = async (req, res) => {
         return res.status(400).send('Data already exists');
       }
   
-      const insertDataQuery = `
-        INSERT INTO student_info (s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_numbe)
+      const insertDataQuery = `INSERT INTO student_info (s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *`;
   
@@ -38,14 +37,14 @@ module.exports.singleStudentInfo = async (req, res) => {
   
       const updateUserQuery = `
         UPDATE users
-        SET value = $1
+        SET persona = $1
         WHERE id = $2
         RETURNING *`;
   
       const updateUserValues = [true,s_reg_id];
       const updatedUser = await client.query(updateUserQuery, updateUserValues);
   
-      res.status(201).json({ message: 'Data added successfully', result, updatedUser: updatedUser.rows });
+      res.status(201).json({ message: 'Data added successfully', data: true });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Server error occurred' });
@@ -164,12 +163,6 @@ module.exports.singleStudentInfo = async (req, res) => {
       }
     };
     
-    
-    
-    
-
-
-
 
     module.exports.getQualifyInfo = async (req,res) =>{  //at student side we want to show the information so that student see and contact them
       try {
@@ -243,3 +236,105 @@ module.exports.singleStudentInfo = async (req, res) => {
         const result = await client.query(query,[tRegId]);
         res.status(200).json({ result: result.rows,sRegId:sRegId});
       }    
+
+
+      module.exports.getTimes = async (req, res) => {
+
+        try {
+          const user_id = req.query.id;
+          const query = `
+            SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour
+            FROM time_slots
+            WHERE user_id = $1;
+          `;
+          const values = [user_id];
+          const result = await client.query(query, values);
+      
+          const selectedSlots = {};
+          result.rows.forEach((row) => {
+            const { day, start_hour } = row;
+            if (!selectedSlots[day]) {
+              selectedSlots[day] = [];
+            }
+            selectedSlots[day].push(Number(start_hour)); // Convert start_hour to number
+          });
+      
+          res.status(200).json({
+            success: true,
+            data: { selectedSlots },
+          });
+        } catch (error) {
+          console.error('Error fetching selected time slots:', error);
+          res.status(500).json({
+            success: false,
+            message: 'An error occurred while fetching the selected time slots',
+            error: error.message,
+          });
+        }
+      };
+
+      // Backend controller code
+      module.exports.addTime = async (req, res) => {
+        try {
+          const t_reg_id = req.user.id;
+          const { id, subject, selectedSlotsArray } = req.body;
+      
+          const insertedRows = [];
+          for (const slot of selectedSlotsArray) {
+            const { day, hour } = slot;
+            const endTime = hour + 1; // Assuming each slot is for an hour
+            const formattedStartTime = `${hour}:00:00`;
+            const formattedEndTime = `${endTime}:00:00`;
+      
+            const query = `
+              INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id)
+              VALUES ($1, $2, $3, $4, $5, $6)
+              RETURNING *;
+            `;
+            const values = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id];
+            const result = await client.query(query, values);
+            insertedRows.push(result.rows[0]);
+          }
+      
+          // Return the array of inserted rows
+          res.status(200).json(insertedRows);
+        } catch (error) {
+          console.error('Error:', error);
+          res.status(500).json({ error: 'Server error occurred' });
+        }
+      };
+      
+      
+      module.exports.getAllTimeSlots = async (req, res) => {
+        try {
+          // Construct the SQL query to fetch records for the user ID
+          const query = `
+            SELECT day, EXTRACT(HOUR FROM start_time) AS start_hour
+            FROM reqslots
+            WHERE t_reg_id = $1;`;
+      
+          const values = [req.user.id]; // Use req.user.id to get the user ID
+          const result = await client.query(query, values);
+      
+          // Group the records by day
+          const groupedData = result.rows.reduce((acc, row) => {
+            if (!acc[row.day]) {
+              acc[row.day] = [];
+            }
+            acc[row.day].push(Number(row.start_hour)); // Convert start_hour to number
+            return acc;
+          }, {});
+      
+          // Return the grouped data
+          res.status(200).json({
+            success: true,
+            data: { selectedSlots: groupedData },
+          });
+        } catch (error) {
+          console.error('Error:', error);
+          res.status(500).json({ error: 'Server error occurred' });
+        }
+      };
+      
+      
+      

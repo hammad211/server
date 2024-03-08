@@ -2,7 +2,7 @@ const {client} = require('../db');
 
 module.exports.addNewTutor = async (req, res) => {    //add new tutor
   try {
-    const { t_name, t_lname, t_address, t_city, t_gender, number, subject } = req.body;
+    const { t_name, t_lname, t_address, t_city, t_gender, number, subject,price } = req.body;
     const value = true;
     const tRegId = req.user.id;
     const userQuery = 'SELECT * FROM tutor_info WHERE t_reg_id = $1';
@@ -12,8 +12,8 @@ module.exports.addNewTutor = async (req, res) => {    //add new tutor
       return res.status(400).send('Data already exists');
     }
 
-    const insertData = 'INSERT INTO tutor_info (t_name, t_lname, t_address, t_city, t_gender, t_reg_id, number, subject) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *';
-    const insertValue = [t_name, t_lname, t_address, t_city, t_gender, tRegId, number, subject];
+    const insertData = 'INSERT INTO tutor_info (t_name, t_lname, t_address, t_city, t_gender, t_reg_id, number, subject,price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9) RETURNING *';
+    const insertValue = [t_name, t_lname, t_address, t_city, t_gender, tRegId, number, subject,price];
     const result = await client.query(insertData, insertValue);
 
     const updateUserTable = 'UPDATE users SET persona = $1 WHERE id = $2';
@@ -81,7 +81,6 @@ module.exports.addNewQualify = async (req, res) => {    //add new qualify info
   }
 };
 
-
 module.exports.updateQualify = async (req, res) => {
   try {
     const { degreeName, degreeType, institue, year, city,yearEnd } = req.body;
@@ -110,7 +109,6 @@ module.exports.updateQualify = async (req, res) => {
     res.status(500).json({ error: 'Server error occurred' });
   }
 };
-
 
 module.exports.getQualifyInfo = async (req,res) =>{  //get new qualify info of tutor
   try {
@@ -168,6 +166,84 @@ module.exports.getTimeScdule = async (req,res) =>{     // get the tutor courses
     res.status(500).json({ error: 'Server error occurred' });
   }
 };
+
+module.exports.addTime_slot = async (req, res) => {
+  console.log(req.body);
+
+  try {
+    const { selectedSlots } = req.body;
+    const user_id = req.user.id;
+
+    // Iterate over the selected slots and insert them into the database
+    for (const day in selectedSlots) {
+      if (selectedSlots.hasOwnProperty(day)) {
+        const timeSlots = selectedSlots[day];
+        for (const startTime of timeSlots) {
+          const endTime = startTime + 1; // Assuming each slot is for an hour
+          // Format start_time and end_time as 'HH:00:00'
+          const formattedStartTime = `${startTime}:00:00`;
+          const formattedEndTime = `${endTime}:00:00`;
+          // Insert the time slot into the database
+          const query = `
+            INSERT INTO time_slots (user_id, day, start_time, end_time)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *;
+          `;
+          const values = [user_id, day, formattedStartTime, formattedEndTime];
+          const result = await client.query(query, values);
+                  }
+      }
+    }
+    const updateUserTable = 'UPDATE users SET time = $1 WHERE id = $2';
+    const insertUser = [true, user_id];
+    const resultUser = await client.query(updateUserTable, insertUser);
+    res.status(200).json({ message: 'Info added successfully', data: true }); 
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while saving the time slots',
+      error: error.message,
+    });
+  }
+};
+
+module.exports.getSelectedSlots = async (req, res) => {
+  try {
+    const user_id = req.user.id;
+    const query = `
+      SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour
+      FROM time_slots
+      WHERE user_id = $1;
+    `;
+    const values = [user_id];
+    const result = await client.query(query, values);
+
+    const selectedSlots = {};
+    result.rows.forEach((row) => {
+      const { day, start_hour } = row;
+      if (!selectedSlots[day]) {
+        selectedSlots[day] = [];
+      }
+      selectedSlots[day].push(Number(start_hour)); // Convert start_hour to number
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { selectedSlots },
+    });
+  } catch (error) {
+    console.error('Error fetching selected time slots:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching the selected time slots',
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 
 module.exports.deleteTime = async (req, res) => {    //delete the time
