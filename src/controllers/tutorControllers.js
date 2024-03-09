@@ -175,28 +175,27 @@ module.exports.addTime_slot = async (req, res) => {
     const user_id = req.user.id;
 
     // Iterate over the selected slots and insert them into the database
-    for (const day in selectedSlots) {
-      if (selectedSlots.hasOwnProperty(day)) {
-        const timeSlots = selectedSlots[day];
-        for (const startTime of timeSlots) {
-          const endTime = startTime + 1; // Assuming each slot is for an hour
-          // Format start_time and end_time as 'HH:00:00'
-          const formattedStartTime = `${startTime}:00:00`;
-          const formattedEndTime = `${endTime}:00:00`;
-          // Insert the time slot into the database
-          const query = `
-            INSERT INTO time_slots (user_id, day, start_time, end_time)
-            VALUES ($1, $2, $3, $4)
-            RETURNING *;
-          `;
-          const values = [user_id, day, formattedStartTime, formattedEndTime];
-          const result = await client.query(query, values);
-                  }
-      }
+    for (const slot of selectedSlots) {
+      const { day, hour } = slot;
+      const endTime = hour + 1; // Assuming each slot is for an hour
+      // Format start_time and end_time as 'HH:00:00'
+      const formattedStartTime = `${hour}:00:00`;
+      const formattedEndTime = `${endTime}:00:00`;
+      // Insert the time slot into the database
+      const query = `
+        INSERT INTO time_slots (user_id, day, start_time, end_time)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *;
+      `;
+      const values = [user_id, day, formattedStartTime, formattedEndTime];
+      const result = await client.query(query, values);
     }
+    
+    // Update the user table
     const updateUserTable = 'UPDATE users SET time = $1 WHERE id = $2';
     const insertUser = [true, user_id];
     const resultUser = await client.query(updateUserTable, insertUser);
+
     res.status(200).json({ message: 'Info added successfully', data: true }); 
 
   } catch (error) {
@@ -208,11 +207,15 @@ module.exports.addTime_slot = async (req, res) => {
   }
 };
 
+
+
+
 module.exports.getSelectedSlots = async (req, res) => {
   try {
+    console.log("called")
     const user_id = req.user.id;
     const query = `
-      SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour
+      SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour, value
       FROM time_slots
       WHERE user_id = $1;
     `;
@@ -221,11 +224,11 @@ module.exports.getSelectedSlots = async (req, res) => {
 
     const selectedSlots = {};
     result.rows.forEach((row) => {
-      const { day, start_hour } = row;
+      const { day, start_hour, value } = row;
       if (!selectedSlots[day]) {
         selectedSlots[day] = [];
       }
-      selectedSlots[day].push(Number(start_hour)); // Convert start_hour to number
+      selectedSlots[day].push({ start_hour: Number(start_hour), value }); 
     });
 
     res.status(200).json({
@@ -241,8 +244,6 @@ module.exports.getSelectedSlots = async (req, res) => {
     });
   }
 };
-
-
 
 
 

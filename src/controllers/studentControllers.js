@@ -229,18 +229,18 @@ module.exports.singleStudentInfo = async (req, res) => {
       };
       
       
-    module.exports.getTimeById = async (req, res) => {   /// it will show the all teacher courses to every student who authenticate but dont do any request to teacher
+    module.exports.getTimeById = async (req, res) => {  
         const tRegId = req.body.tRegId;
         const sRegId = req.user.id;
-        const query = 'SELECT * FROM tutor_time WHERE t_reg_id=$1'
+        const query = 'SELECT * FROM reqSlots WHERE s_reg_id=$1'
         const result = await client.query(query,[tRegId]);
         res.status(200).json({ result: result.rows,sRegId:sRegId});
       }    
 
 
       module.exports.getTimes = async (req, res) => {
-
         try {
+          console.log(req.query)
           const user_id = req.query.id;
           const query = `
             SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour
@@ -256,7 +256,7 @@ module.exports.singleStudentInfo = async (req, res) => {
             if (!selectedSlots[day]) {
               selectedSlots[day] = [];
             }
-            selectedSlots[day].push(Number(start_hour)); // Convert start_hour to number
+            selectedSlots[day].push(Number(start_hour)); 
           });
       
           res.status(200).json({
@@ -273,27 +273,37 @@ module.exports.singleStudentInfo = async (req, res) => {
         }
       };
 
-      // Backend controller code
       module.exports.addTime = async (req, res) => {
         try {
+          console.log(req.body);
           const t_reg_id = req.user.id;
-          const { id, subject, selectedSlotsArray } = req.body;
+          const { id, subject, clickedSlots } = req.body;
       
           const insertedRows = [];
-          for (const slot of selectedSlotsArray) {
-            const { day, hour } = slot;
-            const endTime = hour + 1; // Assuming each slot is for an hour
-            const formattedStartTime = `${hour}:00:00`;
+          for (const slot of clickedSlots) {
+            const [day, timeRange] = slot.split(' ');
+            const [startTime, endTime] = timeRange.split(' - ')[0].split(':');
+            const formattedStartTime = `${startTime}:00:00`;
             const formattedEndTime = `${endTime}:00:00`;
       
-            const query = `
+            // Insert data into reqslots table
+            const reqSlotQuery = `
               INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id)
               VALUES ($1, $2, $3, $4, $5, $6)
               RETURNING *;
             `;
-            const values = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id];
-            const result = await client.query(query, values);
-            insertedRows.push(result.rows[0]);
+            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id];
+            const reqSlotResult = await client.query(reqSlotQuery, reqSlotValues);
+            insertedRows.push(reqSlotResult.rows[0]);
+      
+            // Update time_slot table
+            const updateTimeSlotQuery = `
+              UPDATE time_slots
+              SET value = true
+              WHERE day = $1 AND start_time = $2;
+            `;
+            const updateTimeSlotValues = [day, formattedStartTime];
+            await client.query(updateTimeSlotQuery, updateTimeSlotValues);
           }
       
           // Return the array of inserted rows
@@ -307,34 +317,48 @@ module.exports.singleStudentInfo = async (req, res) => {
       
       module.exports.getAllTimeSlots = async (req, res) => {
         try {
-          // Construct the SQL query to fetch records for the user ID
           const query = `
-            SELECT day, EXTRACT(HOUR FROM start_time) AS start_hour
-            FROM reqslots
-            WHERE t_reg_id = $1;`;
-      
-          const values = [req.user.id]; // Use req.user.id to get the user ID
+            SELECT 
+              rs.day, 
+              TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+              rs.subject, 
+              rs.t_reg_id,
+              ti.*  
+            FROM 
+              reqslots rs
+            JOIN 
+              tutor_info ti ON rs.t_reg_id = ti.t_reg_id
+            WHERE 
+              rs.s_reg_id = $1;
+          `;
+          const values = [req.user.id]; 
           const result = await client.query(query, values);
-      
-          // Group the records by day
+          
           const groupedData = result.rows.reduce((acc, row) => {
-            if (!acc[row.day]) {
-              acc[row.day] = [];
+            const { day, start_hour, subject, t_reg_id, ...tutorInfo } = row;
+            if (!acc.selectedSlots[day]) {
+              acc.selectedSlots[day] = [];
             }
-            acc[row.day].push(Number(row.start_hour)); // Convert start_hour to number
-            return acc;
-          }, {});
+            acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id }); 
       
-          // Return the grouped data
+            // Push tutorInfo separately
+            acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: tutorInfo };
+      
+            return acc;
+          }, { selectedSlots: {}, tutorInfo: {} });
+      
           res.status(200).json({
             success: true,
-            data: { selectedSlots: groupedData },
+            data: groupedData,
           });
         } catch (error) {
           console.error('Error:', error);
           res.status(500).json({ error: 'Server error occurred' });
         }
       };
+      
+      
+      
       
       
       

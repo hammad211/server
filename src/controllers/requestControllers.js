@@ -33,51 +33,98 @@ const deleteresult = await client.query(deleteQuery, valuesDelete);
   }
 };
 
-module.exports.getCourseRequest = async (req, res) => {
-  try {
-    const tRegId = req.user.id;
-    const { searchTerm } = req.query;
+// module.exports.getCourseRequest = async (req, res) => {
+//   try {
+//     const tRegId = req.user.id;
+//     const { searchTerm } = req.query;
 
-    const decodedSearchTerm = Array.isArray(searchTerm)
-      ? searchTerm.map((value) => decodeURIComponent(value))
-      : decodeURIComponent(searchTerm);
-    let baseQuery = `
-      SELECT req_table.*, tutor_info.*, student_info.*
-      FROM req_table
-      INNER JOIN tutor_info ON req_table.t_reg_id = tutor_info.t_reg_id
-      INNER JOIN student_info ON req_table.s_reg_id = student_info.s_reg_id
-      WHERE req_table.t_reg_id = $1
-    `;
-    const params = [tRegId];
-    if (decodedSearchTerm && decodedSearchTerm.trim() !== '') {
-      baseQuery += `
-        AND (tutor_info.t_name ILIKE $2 OR student_info.s_fname ILIKE $2 OR req_table.course_name ILIKE $2)
-      `;
-      params.push(`%${decodedSearchTerm}%`);
-    }
+//     const decodedSearchTerm = Array.isArray(searchTerm)
+//       ? searchTerm.map((value) => decodeURIComponent(value))
+//       : decodeURIComponent(searchTerm);
+//     let baseQuery = `
+//       SELECT req_table.*, tutor_info.*, student_info.*
+//       FROM req_table
+//       INNER JOIN tutor_info ON req_table.t_reg_id = tutor_info.t_reg_id
+//       INNER JOIN student_info ON req_table.s_reg_id = student_info.s_reg_id
+//       WHERE req_table.t_reg_id = $1
+//     `;
+//     const params = [tRegId];
+//     if (decodedSearchTerm && decodedSearchTerm.trim() !== '') {
+//       baseQuery += `
+//         AND (tutor_info.t_name ILIKE $2 OR student_info.s_fname ILIKE $2 OR req_table.course_name ILIKE $2)
+//       `;
+//       params.push(`%${decodedSearchTerm}%`);
+//     }
 
-    console.log('Generated SQL query:', baseQuery);
-    console.log('Parameters:', params);
+//     console.log('Generated SQL query:', baseQuery);
+//     console.log('Parameters:', params);
 
-    const result = await client.query(baseQuery, params);
+//     const result = await client.query(baseQuery, params);
 
-    console.log('Query result:', result.rows);
+//     console.log('Query result:', result.rows);
 
-    if (result.rows.length > 0) {
-      res.status(200).json({ result: result.rows });
-    } else {
-      res.status(404).json({ error: 'No course requests found for the user' });
-    }
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error occurred' });
-  }
-};
+//     if (result.rows.length > 0) {
+//       res.status(200).json({ result: result.rows });
+//     } else {
+//       res.status(404).json({ error: 'No course requests found for the user' });
+//     }
+//   } catch (e) {
+//     console.error(e);
+//     res.status(500).json({ error: 'Server error occurred' });
+//   }
+// };
 
 
 
 
 //update the request with status accept
+
+module.exports.getCourseRequest = async (req, res) => {
+  try {
+    console.log("called12")
+    const query = `
+      SELECT 
+        rs.day, 
+        TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+        rs.subject, 
+        rs.t_reg_id,
+        si.*  
+      FROM 
+        reqslots rs
+      JOIN 
+        student_info si ON rs.s_reg_id = si.s_reg_id
+      WHERE 
+        rs.t_reg_id = $1;
+    `;
+    const values = [req.user.id]; 
+    const result = await client.query(query, values);
+    
+    const groupedData = result.rows.reduce((acc, row) => {
+      const { day, start_hour, subject, t_reg_id, ...studentInfo } = row;
+      if (!acc.selectedSlots[day]) {
+        acc.selectedSlots[day] = [];
+      }
+      acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id }); 
+  
+      // Push studentInfo separately
+      acc.studentInfo = { ...acc.studentInfo, [t_reg_id]: studentInfo };
+  
+      return acc;
+    }, { selectedSlots: {}, studentInfo: {} });
+  
+    res.status(200).json({
+      success: true,
+      data: groupedData,
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Server error occurred' });
+  }
+  
+};
+
+
+
 module.exports.updateCourseRequest = async (req, res) => {    //update the req response 
   try {
     const { courseId, val } = req.body;
