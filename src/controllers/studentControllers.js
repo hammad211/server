@@ -1,6 +1,6 @@
 const {client} = require('../db');
 
-module.exports.singleStudentInfo = async (req, res) => {
+module.exports.singleStudentInfo = async (req, res) => { // get student info
   try {
     const userId = req.user.id;
     const query = 'SELECT * FROM student_info WHERE s_reg_id = $1';
@@ -12,7 +12,7 @@ module.exports.singleStudentInfo = async (req, res) => {
   }
 };
 
-  module.exports.addNewStudent = async (req, res) => {
+module.exports.addNewStudent = async (req, res) => { //add student info
     try {
       const  s_fname = req.body.s_fname;
       const  s_city = req.body.s_city;
@@ -20,6 +20,8 @@ module.exports.singleStudentInfo = async (req, res) => {
       const  s_gender = req.body.s_gender;
       const  s_number = req.body.s_number;
       const  s_address = req.body.s_address;
+      const  coordinates = req.body.coordinates;
+
       const s_reg_id = req.user.id;
       const userQuery = 'SELECT * FROM student_info WHERE s_reg_id = $1';
       const existingUser = await client.query(userQuery, [s_reg_id]);
@@ -28,11 +30,11 @@ module.exports.singleStudentInfo = async (req, res) => {
         return res.status(400).send('Data already exists');
       }
   
-      const insertDataQuery = `INSERT INTO student_info (s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      const insertDataQuery = `INSERT INTO student_info (s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number,coordinates)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *`;
   
-      const insertDataValues = [s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number];
+      const insertDataValues = [s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number, coordinates];
       const result = await client.query(insertDataQuery, insertDataValues);
   
       const updateUserQuery = `
@@ -49,9 +51,9 @@ module.exports.singleStudentInfo = async (req, res) => {
       console.error(error);
       res.status(500).json({ error: 'Server error occurred' });
     }
-  };
+};
 
-  module.exports.updateStudent = async (req, res) => {
+  module.exports.updateStudent = async (req, res) => { //update student info
     try {
       const { s_address, s_number, s_lname, s_fname, s_city, s_gender } = req.body;
       const s_reg_id = req.user.id;
@@ -68,24 +70,9 @@ module.exports.singleStudentInfo = async (req, res) => {
     }
   };
   
-  module.exports.getData = async (req, res) => {
-      try {
-        const tRegId = req.body.tRegId; // Assuming  send t_reg_id in the request body        
-        const query = `
-        SELECT tutor_info.*, qualify_info.*
-        FROM tutor_info
-        JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
-        WHERE tutor_info.t_reg_id = $1;
-        `;
-        const result = await client.query(query, [tRegId]);
-        res.status(200).json({ rows: result.rows });
-      } catch (e) {
-        res.status(400).send(e.message);
-      }
-    };
 
     
-    module.exports.singleTutorInfo = async (req, res) => {
+module.exports.singleTutorInfo = async (req, res) => { //display all tutors on search screen and pagination, filters
       try {
         let { page, size, search } = req.query;
     
@@ -103,7 +90,7 @@ module.exports.singleStudentInfo = async (req, res) => {
         let filterValues = [];
     
         if (req.query.subject) {
-          filterConditions.push(`$1 = ANY(tutor_time.course)`);
+          filterConditions.push("tutor_info.subject = $" + (filterValues.length + 1));
           filterValues.push(req.query.subject);
         }
     
@@ -123,18 +110,14 @@ module.exports.singleStudentInfo = async (req, res) => {
         }
     
         if (search) {
-          // Add conditions to search in multiple fields
           filterConditions.push(`
             (
               tutor_info.t_name ILIKE $${filterValues.length + 1}
               OR tutor_info.t_lname ILIKE $${filterValues.length + 2}
-              OR tutor_time.course ILIKE $${filterValues.length + 3}
               -- Add more fields as needed
             )
           `);
     
-          // Add the search term for each field
-          filterValues.push(`%${search}%`);
           filterValues.push(`%${search}%`);
           filterValues.push(`%${search}%`);
         }
@@ -143,107 +126,31 @@ module.exports.singleStudentInfo = async (req, res) => {
           ? `WHERE ${filterConditions.join(" AND ")}`
           : "";
     
-        const query = `
-          SELECT tutor_info.*, tutor_time.*, reviews.*
+          const query = `
+          SELECT tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data
           FROM tutor_info
-          LEFT JOIN tutor_time ON tutor_info.t_reg_id = tutor_time.t_reg_id
           LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
+          LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
+          LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
           ${filterClause}
           ${filterValues.length > 0 ? `ORDER BY ${filterValues.map((_, index) => `$${index + 1}`).join(", ")} ASC` : "ORDER BY tutor_info.t_reg_id ASC"}
           OFFSET $${filterValues.length + 1}::bigint
           LIMIT $${filterValues.length + 2}::bigint
         `;
-    
-        console.log(query);
         const result = await client.query(query, [...filterValues, offset, size]);
-        console.log(result.rows)
+        console.log(result.rows);
         res.status(200).json(result.rows);
       } catch (e) {
         res.status(400).send(e.message);
       }
-    };
-    
-
-    module.exports.getQualifyInfo = async (req,res) =>{  //at student side we want to show the information so that student see and contact them
-      try {
-        const query = 'SELECT * FROM qualify_info';
-        const result = await client.query(query);
-          res.status(200).json(result.rows);
-        } catch (e) {
-          res.status(400).send(e.message);
-        }
-    };
-    
-    
-    module.exports.getTime = async (req, res) => {   /// it will show the all teacher courses to every student who authenticate but dont do any request to teacher
-        const t_reg_id = req.params.id;
-        const query = 'SELECT * FROM tutor_time WHERE t_reg_id = $1';
-        const result = await client.query(query, [tRegId]);
-
-        res.status(200).json({ result: result.rows});
-      } 
-    
-      module.exports.getCourseRequest = async (req, res) => {
+};
+  
+  
+      module.exports.getTimes = async (req, res) => { //it will show the time table to this.addNewStudent, when student select any teacher to request
         try {
-          const sRegId = req.user.id;
-          const { searchTerm } = req.query;
-      
-          const decodedSearchTerm = Array.isArray(searchTerm)
-            ? searchTerm.map((value) => decodeURIComponent(value))
-            : decodeURIComponent(searchTerm);
-      
-          let baseQuery = `
-            SELECT req_table.*, student_info.*, tutor_info.*
-            FROM req_table
-            INNER JOIN student_info ON req_table.s_reg_id = student_info.s_reg_id
-            INNER JOIN tutor_info ON req_table.t_reg_id = tutor_info.t_reg_id
-            WHERE req_table.s_reg_id = $1
-          `;
-      
-          const params = [sRegId];
-      
-          if (decodedSearchTerm && decodedSearchTerm.trim() !== '') {
-            baseQuery += `
-              AND (tutor_info.t_name ILIKE $2 OR student_info.s_fname ILIKE $2 OR req_table.course_name ILIKE $2)
-            `;
-      
-            params.push(`%${decodedSearchTerm}%`);
-          }
-      
-          console.log('Generated SQL query:', baseQuery);
-          console.log('Parameters:', params);
-      
-          const result = await client.query(baseQuery, params);
-      
-          console.log('Query result:', result.rows);
-      
-          if (result.rows.length > 0) {
-            res.status(200).json({ result: result.rows });
-          } else {
-            res.status(404).json({ error: 'No course requests found for the user' });
-          }
-        } catch (e) {
-          console.error(e);
-          res.status(500).json({ error: 'Server error occurred' });
-        }
-      };
-      
-      
-    module.exports.getTimeById = async (req, res) => {  
-        const tRegId = req.body.tRegId;
-        const sRegId = req.user.id;
-        const query = 'SELECT * FROM reqSlots WHERE s_reg_id=$1'
-        const result = await client.query(query,[tRegId]);
-        res.status(200).json({ result: result.rows,sRegId:sRegId});
-      }    
-
-
-      module.exports.getTimes = async (req, res) => {
-        try {
-          console.log(req.query)
           const user_id = req.query.id;
           const query = `
-            SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour
+            SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour, value
             FROM time_slots
             WHERE user_id = $1;
           `;
@@ -252,11 +159,11 @@ module.exports.singleStudentInfo = async (req, res) => {
       
           const selectedSlots = {};
           result.rows.forEach((row) => {
-            const { day, start_hour } = row;
+            const { day, start_hour, value } = row; // Destructure the value column
             if (!selectedSlots[day]) {
               selectedSlots[day] = [];
             }
-            selectedSlots[day].push(Number(start_hour)); 
+            selectedSlots[day].push({ start_hour: Number(start_hour), value }); // Include value in the pushed object
           });
       
           res.status(200).json({
@@ -272,8 +179,9 @@ module.exports.singleStudentInfo = async (req, res) => {
           });
         }
       };
+      
 
-      module.exports.addTime = async (req, res) => {
+      module.exports.addTime = async (req, res) => { //post req by student with status pending
         try {
           console.log(req.body);
           const t_reg_id = req.user.id;
@@ -288,11 +196,11 @@ module.exports.singleStudentInfo = async (req, res) => {
       
             // Insert data into reqslots table
             const reqSlotQuery = `
-              INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id)
+              INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id,status)
               VALUES ($1, $2, $3, $4, $5, $6)
               RETURNING *;
             `;
-            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id];
+            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id,pending];
             const reqSlotResult = await client.query(reqSlotQuery, reqSlotValues);
             insertedRows.push(reqSlotResult.rows[0]);
       
@@ -314,35 +222,39 @@ module.exports.singleStudentInfo = async (req, res) => {
         }
       };
       
-      
+      //represent in dashboard of student
       module.exports.getAllTimeSlots = async (req, res) => {
         try {
           const query = `
             SELECT 
-              rs.day, 
-              TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
-              rs.subject, 
-              rs.t_reg_id,
-              ti.*  
+                rs.day, 
+                TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+                rs.subject, 
+                rs.t_reg_id,
+                rs.status, -- Include the status variable from reqslots
+                ti.*,
+                img.ima AS image_data 
             FROM 
-              reqslots rs
+                reqslots rs
             JOIN 
-              tutor_info ti ON rs.t_reg_id = ti.t_reg_id
+                tutor_info ti ON rs.t_reg_id = ti.t_reg_id
+            LEFT JOIN
+                image img ON ti.t_reg_id = img.use_id
             WHERE 
-              rs.s_reg_id = $1;
+                rs.s_reg_id = $1;
           `;
           const values = [req.user.id]; 
           const result = await client.query(query, values);
           
           const groupedData = result.rows.reduce((acc, row) => {
-            const { day, start_hour, subject, t_reg_id, ...tutorInfo } = row;
+            const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
             if (!acc.selectedSlots[day]) {
               acc.selectedSlots[day] = [];
             }
-            acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id }); 
-      
+            acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); // Include status in selectedSlots
+            
             // Push tutorInfo separately
-            acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: tutorInfo };
+            acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status } }; // Include status in tutorInfo
       
             return acc;
           }, { selectedSlots: {}, tutorInfo: {} });
@@ -361,4 +273,28 @@ module.exports.singleStudentInfo = async (req, res) => {
       
       
       
-      
+      //useless routes till now
+      module.exports.getTimeById = async (req, res) => {  
+        const tRegId = req.body.tRegId;
+        const sRegId = req.user.id;
+        const query = 'SELECT * FROM reqSlots WHERE s_reg_id=$1'
+        const result = await client.query(query,[tRegId]);
+        res.status(200).json({ result: result.rows,sRegId:sRegId});
+      }    
+
+module.exports.getData = async (req, res) => {
+  console.log("getdata")
+    try {
+      const tRegId = req.body.tRegId;       
+      const query = `
+      SELECT tutor_info.*, qualify_info.*
+      FROM tutor_info
+      JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
+      WHERE tutor_info.t_reg_id = $1;
+      `;
+      const result = await client.query(query, [tRegId]);
+      res.status(200).json({ rows: result.rows });
+    } catch (e) {
+      res.status(400).send(e.message);
+    }
+};

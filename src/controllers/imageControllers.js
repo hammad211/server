@@ -25,6 +25,7 @@ module.exports.addImage =  async (req, res) => {
       const updateUserTable = 'UPDATE users SET image = $1 WHERE id = $2';
     const insertUser = [true, userid];
     const resultUser = await client.query(updateUserTable, insertUser);
+    console.log(resultUser.rows);
     res.status(200).json({ message: 'Info added successfully', data: value }); 
     } catch (error) {
       console.log(error)
