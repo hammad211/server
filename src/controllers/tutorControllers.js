@@ -144,20 +144,17 @@ module.exports.addTime_slot = async (req, res) => { //time table added by teache
     for (const slot of selectedSlots) {
       const { day, hour } = slot;
       const endTime = hour + 1; // Assuming each slot is for an hour
-      // Format start_time and end_time as 'HH:00:00'
       const formattedStartTime = `${hour}:00:00`;
       const formattedEndTime = `${endTime}:00:00`;
-      // Insert the time slot into the database
       const query = `
-        INSERT INTO time_slots (user_id, day, start_time, end_time)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO time_slots (user_id, day, start_time, end_time,value)
+        VALUES ($1, $2, $3, $4,$5)
         RETURNING *;
       `;
-      const values = [user_id, day, formattedStartTime, formattedEndTime];
+      const values = [user_id, day, formattedStartTime, formattedEndTime,false];
       const result = await client.query(query, values);
     }
     
-    // Update the user table
     const updateUserTable = 'UPDATE users SET time = $1 WHERE id = $2';
     const insertUser = [true, user_id];
     const resultUser = await client.query(updateUserTable, insertUser);
