@@ -69,8 +69,6 @@ module.exports.addNewStudent = async (req, res) => { //add student info
       res.status(500).json({ error: 'Server error occurred' });
     }
   };
-  
-
     
 module.exports.singleTutorInfo = async (req, res) => { //display all tutors on search screen and pagination, filters
       try {
@@ -108,13 +106,12 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
           filterConditions.push("tutor_time.price = $" + (filterValues.length + 1));
           filterValues.push(req.query.price);
         }
-    
         if (search) {
           filterConditions.push(`
             (
               tutor_info.t_name ILIKE $${filterValues.length + 1}
               OR tutor_info.t_lname ILIKE $${filterValues.length + 2}
-              -- Add more fields as needed
+              
             )
           `);
     
@@ -133,12 +130,11 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
           LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
           LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
           ${filterClause}
-          ${filterValues.length > 0 ? `ORDER BY ${filterValues.map((_, index) => `$${index + 1}`).join(", ")} ASC` : "ORDER BY tutor_info.t_reg_id ASC"}
+          ${filterValues.length > 0 ? `ORDER BY ${filterValues.map((_,index) => `$${index + 1}`).join(", ")} ASC` : "ORDER BY tutor_info.t_reg_id ASC"}
           OFFSET $${filterValues.length + 1}::bigint
           LIMIT $${filterValues.length + 2}::bigint
         `;
         const result = await client.query(query, [...filterValues, offset, size]);
-        console.log(result.rows);
         res.status(200).json(result.rows);
       } catch (e) {
         res.status(400).send(e.message);
@@ -149,6 +145,7 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
       module.exports.getTimes = async (req, res) => { //it will show the time table to this.addNewStudent, when student select any teacher to request
         try {
           const user_id = req.query.id;
+          console.log(req.query.id)
           const query = `
             SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour, value
             FROM time_slots
@@ -183,7 +180,6 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
 
       module.exports.addTime = async (req, res) => { //post req by student with status pending
         try {
-          console.log(req.body);
           const t_reg_id = req.user.id;
           const { id, subject, clickedSlots } = req.body;
       
@@ -193,18 +189,16 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
             const [startTime, endTime] = timeRange.split(' - ')[0].split(':');
             const formattedStartTime = `${startTime}:00:00`;
             const formattedEndTime = `${endTime}:00:00`;
-      
-            // Insert data into reqslots table
+            
             const reqSlotQuery = `
               INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id,status)
-              VALUES ($1, $2, $3, $4, $5, $6)
-              RETURNING *;
+              VALUES ($1, $2, $3, $4, $5, $6,$7)
+              RETURNING *  
             `;
-            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id,pending];
+            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id,"pending"];
             const reqSlotResult = await client.query(reqSlotQuery, reqSlotValues);
             insertedRows.push(reqSlotResult.rows[0]);
       
-            // Update time_slot table
             const updateTimeSlotQuery = `
               UPDATE time_slots
               SET value = true
@@ -214,7 +208,6 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
             await client.query(updateTimeSlotQuery, updateTimeSlotValues);
           }
       
-          // Return the array of inserted rows
           res.status(200).json(insertedRows);
         } catch (error) {
           console.error('Error:', error);
@@ -252,9 +245,7 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
               acc.selectedSlots[day] = [];
             }
             acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); // Include status in selectedSlots
-            
-            // Push tutorInfo separately
-            acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status } }; // Include status in tutorInfo
+                        acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status } }; // Include status in tutorInfo
       
             return acc;
           }, { selectedSlots: {}, tutorInfo: {} });

@@ -1,114 +1,69 @@
 const {client} = require ('../db');
 const value = require("../statusValues/status")
 
-module.exports.addCourseRequest = async (req, res) => {
+
+module.exports.addCourseRequest = async (req, res) => { // Post req by student with status accepted
   try {
-    const { comments,class_level,subject,price,s_reg_id,t_reg_id,id } = req.body;
-    let status = value.RequestStatus.PENDING;
-    const statusValue = "fill";
-    const existingUserQuery = 'SELECT * FROM req_table WHERE s_reg_id = $1 AND c_id = $2';
-    console.log(id);
-    const existingUser = await client.query(existingUserQuery, [s_reg_id, id]);
-    if (existingUser.rows.length > 0) {
-      return res.status(200).send('Request already exists');
+    const t_reg_id = req.user.id;
+    const { matchedSlots, studentId } = req.body;
+
+    for (const day in matchedSlots) {
+      for (const slotId of matchedSlots[day]) {
+        const updateTimeSlotQuery = `
+          UPDATE reqslots
+          SET status = 'accepted'
+          WHERE s_reg_id = $1 AND t_reg_id = $2;
+        `;
+        const updateTimeSlotValues = [studentId, t_reg_id];
+        await client.query(updateTimeSlotQuery, updateTimeSlotValues);
+      }
     }
-    const time = "8:00 pm";
-    const date = "22-02-2024";
-    const insertData = 'INSERT INTO req_table (status, t_reg_id, s_reg_id, course_name,price,time,date,comments,level,c_id) VALUES ($1, $2, $3, $4,$5,$6,$7,$8,$9,$10) RETURNING *';
-    const insertValues = [status, t_reg_id, s_reg_id, subject,price,time,date,comments,class_level,id];
-    const result = await client.query(insertData, insertValues);
 
-    const deleteQuery = 'DELETE FROM student_proposal WHERE id = $1 AND s_reg_id = $2 RETURNING *';
-const valuesDelete = [id, s_reg_id];
-const deleteresult = await client.query(deleteQuery, valuesDelete);
-
-    
-
-    return res.status(200).send('Request sent successfully');
-
-    
+    res.status(200).json({ success: true });
   } catch (error) {
+    console.error('Error:', error);
     res.status(500).json({ error: 'Server error occurred' });
-    console.log(error);
   }
 };
 
-// module.exports.getCourseRequest = async (req, res) => {
-//   try {
-//     const tRegId = req.user.id;
-//     const { searchTerm } = req.query;
-
-//     const decodedSearchTerm = Array.isArray(searchTerm)
-//       ? searchTerm.map((value) => decodeURIComponent(value))
-//       : decodeURIComponent(searchTerm);
-//     let baseQuery = `
-//       SELECT req_table.*, tutor_info.*, student_info.*
-//       FROM req_table
-//       INNER JOIN tutor_info ON req_table.t_reg_id = tutor_info.t_reg_id
-//       INNER JOIN student_info ON req_table.s_reg_id = student_info.s_reg_id
-//       WHERE req_table.t_reg_id = $1
-//     `;
-//     const params = [tRegId];
-//     if (decodedSearchTerm && decodedSearchTerm.trim() !== '') {
-//       baseQuery += `
-//         AND (tutor_info.t_name ILIKE $2 OR student_info.s_fname ILIKE $2 OR req_table.course_name ILIKE $2)
-//       `;
-//       params.push(`%${decodedSearchTerm}%`);
-//     }
-
-//     console.log('Generated SQL query:', baseQuery);
-//     console.log('Parameters:', params);
-
-//     const result = await client.query(baseQuery, params);
-
-//     console.log('Query result:', result.rows);
-
-//     if (result.rows.length > 0) {
-//       res.status(200).json({ result: result.rows });
-//     } else {
-//       res.status(404).json({ error: 'No course requests found for the user' });
-//     }
-//   } catch (e) {
-//     console.error(e);
-//     res.status(500).json({ error: 'Server error occurred' });
-//   }
-// };
 
 
 
-
-//update the request with status accept
-
-module.exports.getCourseRequest = async (req, res) => {
+module.exports.getCourseRequest = async (req, res) => { // Showing student request on student side
   try {
-    console.log("called12")
+    console.log("called12");
+
+    const t_reg_id = req.user.id;
     const query = `
       SELECT 
         rs.day, 
         TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
         rs.subject, 
-        rs.t_reg_id,
-        si.*  
+        rs.t_reg_id AS t_reg_id,
+        rs.status, -- Include the status column from the database
+        si.*, 
+        img.ima AS image_data
       FROM 
         reqslots rs
       JOIN 
         student_info si ON rs.s_reg_id = si.s_reg_id
+      JOIN
+        image img ON rs.t_reg_id = img.use_id
       WHERE 
         rs.t_reg_id = $1;
     `;
-    const values = [req.user.id]; 
+
+    const values = [t_reg_id]; 
     const result = await client.query(query, values);
     
     const groupedData = result.rows.reduce((acc, row) => {
-      const { day, start_hour, subject, t_reg_id, ...studentInfo } = row;
+      const { day, start_hour, subject, t_reg_id, status, ima, ...studentInfo } = row;
       if (!acc.selectedSlots[day]) {
         acc.selectedSlots[day] = [];
       }
-      acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id }); 
+      acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); 
   
-      // Push studentInfo separately
-      acc.studentInfo = { ...acc.studentInfo, [t_reg_id]: studentInfo };
-  
+      acc.studentInfo = { ...acc.studentInfo, [t_reg_id]: { ...studentInfo, t_id:t_reg_id, ima, status } };
       return acc;
     }, { selectedSlots: {}, studentInfo: {} });
   
@@ -120,10 +75,7 @@ module.exports.getCourseRequest = async (req, res) => {
     console.error('Error:', error);
     res.status(500).json({ error: 'Server error occurred' });
   }
-  
 };
-
-
 
 module.exports.updateCourseRequest = async (req, res) => {    //update the req response 
   try {
@@ -143,7 +95,9 @@ module.exports.updateCourseRequest = async (req, res) => {    //update the req r
     }  else {
       status = 'pending';
     }
+
     console.log(status)
+
     const query = 'UPDATE req_table SET status = $1 WHERE t_reg_id = $2 AND c_id = $3 RETURNING *';
     const values = [status, tRegId, courseId];
     const result = await client.query(query, values);

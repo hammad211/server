@@ -138,6 +138,7 @@ module.exports.getQualifyInfo = async (req,res) =>{  //get qualify info of tutor
 }
 
 module.exports.addTime_slot = async (req, res) => { //time table added by teacher
+  console.log(req.body)
   try { 
     const { selectedSlots } = req.body;
     const user_id = req.user.id;
