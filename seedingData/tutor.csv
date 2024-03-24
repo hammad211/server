@@ -1,26 +1,11 @@
-t_reg_id,t_name,t_lname,t_address,t_city,t_gender,number
-34,ali,hssan,johar town, lahore,Male,34567891210
-36,Jane,Smith,Teacher_Address_1,Teacher_City_1,Female,12345678901
-37,Sophia,Wilson,Teacher_Address_2,Teacher_City_2,Female,23456789012
-38,William,Lee,Teacher_Address_3,Teacher_City_3,Male,34567890123
-39,Olivia,Anderson,Teacher_Address_4,Teacher_City_4,Female,45678901234
-40,Ava,Moore,Teacher_Address_5,Teacher_City_5,Female,56789012345
-41,Emma,Davis,Teacher_Address_6,Teacher_City_6,Female,67890123456
-42,Charlotte,Brown,Teacher_Address_7,Teacher_City_7,Female,78901234567
-43,Amelia,Taylor,Teacher_Address_8,Teacher_City_8,Female,89012345678
-44,Ethan,Johnson,Teacher_Address_9,Teacher_City_9,Male,90123456789
-45,Aria,Taylor,Teacher_Address_10,Teacher_City_10,Female,12345678901
-46,Evelyn,Moore,Teacher_Address_11,Teacher_City_11,Female,23456789012
-47,Jackson,Lee,Teacher_Address_12,Teacher_City_12,Male,34567890123
-48,Grace,Davis,Teacher_Address_13,Teacher_City_13,Female,45678901234
-49,Chloe,Brown,Teacher_Address_14,Teacher_City_14,Female,56789012345
-50,Liam,Johnson,Teacher_Address_15,Teacher_City_15,Male,67890123456
-51,Oliver,Wilson,Teacher_Address_16,Teacher_City_16,Male,78901234567
-52,Ava,Taylor,Teacher_Address_17,Teacher_City_17,Female,89012345678
-53,Noah,Anderson,Teacher_Address_18,Teacher_City_18,Male,90123456789
-54,Emma,Moore,Teacher_Address_19,Teacher_City_19,Female,12345678901
-55,William,Lee,Teacher_Address_20,Teacher_City_20,Male,23456789012
-56,Sophia,Davis,Teacher_Address_21,Teacher_City_21,Female,34567890123
-57,Liam,Johnson,Teacher_Address_22,Teacher_City_22,Male,45678901234
-58,Olivia,Brown,Teacher_Address_23,Teacher_City_23,Female,56789012345
-59,Mason,Wilson,Teacher_Address_24,Teacher_City_24,Male,67890123456
+t_reg_id,t_name,t_lname,t_address,t_city,t_gender,number,subject,price,about,longitude,latitude
+1,ali,hssan,Lahore Fort, lahore,Male,34567891210,history,1000,Passionate about making science fun and engaging for students,74.3587,31.5204 
+2,Jane,Smith, Liberty Market,Lahore,Female,12345678901,english,2000,Passionate about making science fun and engaging for students,74.3646,31.5497 
+3,Sophia,Wilson,Model Town Park,Lahore,Female,23456789012,urdu,1500,Passionate about making science fun and engaging for students,74.3207,31.5045 
+4,William,Lee,Badshahi Mosque,Lahore,Male,34567890123,science,2000,Passionate about making science fun and engaging for students,74.3522,31.5204 
+5,Olivia,Anderson,Gaddafi Stadium,Lahore,Female,45678901234,maths,1000,Passionate about making science fun and engaging for students,74.3184,31.5497 
+6,Ava,Moore,Jallo Park,Lahore,Female,56789012345,english,3000,Passionate about making science fun and engaging for students,74.3265,31.4675 
+7,Emma,Davis,Packages Mall,Lahore,Female,67890123456,english,5000,Passionate about making science fun and engaging for students,74.3344,31.5497 
+8,Charlotte,Brown,Lahore Zoo,Lahore,Female,78901234567,isl,6000,Passionate about making science fun and engaging for students,74.3644,31.5020 
+9,Amelia,Taylor,Shalimar Gardens,Lahore,Female,89012345678,urdu,2500,Passionate about making science fun and engaging for students,74.3810,31.5204 
+

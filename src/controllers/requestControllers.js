@@ -2,7 +2,7 @@ const {client} = require ('../db');
 const value = require("../statusValues/status")
 
 
-module.exports.addCourseRequest = async (req, res) => { // Post req by student with status accepted
+module.exports.updateCourseRequest = async (req, res) => { // update req by teacher with status accepted
   try {
     const t_reg_id = req.user.id;
     const { matchedSlots, studentId } = req.body;
@@ -26,10 +26,7 @@ module.exports.addCourseRequest = async (req, res) => { // Post req by student w
   }
 };
 
-
-
-
-module.exports.getCourseRequest = async (req, res) => { // Showing student request on student side
+module.exports.getCourseRequest = async (req, res) => { // Showing student request on teacher side
   try {
     console.log("called12");
 
@@ -73,36 +70,6 @@ module.exports.getCourseRequest = async (req, res) => { // Showing student reque
     });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Server error occurred' });
-  }
-};
-
-module.exports.updateCourseRequest = async (req, res) => {    //update the req response 
-  try {
-    const { courseId, val } = req.body;
-    
-    const tRegId = req.user.id;
-    const existingRequestQuery = 'SELECT * FROM req_table WHERE t_reg_id = $1 AND c_id = $2';
-    const existingRequest = await client.query(existingRequestQuery, [tRegId, courseId]);
-    if (existingRequest.rows.length === 0) {
-      return res.status(404).json({ error: 'Request not found' });
-    }
-    let status = null;
-    if (value.RequestStatus.ACCEPTED === val ) {
-      status = 'accept';
-    } else if (value.RequestStatus.COMPLETED === val) {
-      status = 'complete';
-    }  else {
-      status = 'pending';
-    }
-
-    console.log(status)
-
-    const query = 'UPDATE req_table SET status = $1 WHERE t_reg_id = $2 AND c_id = $3 RETURNING *';
-    const values = [status, tRegId, courseId];
-    const result = await client.query(query, values);
-    res.status(200).json({ message: 'Request updated successfully', result });
-  } catch (error) {
     res.status(500).json({ error: 'Server error occurred' });
   }
 };

@@ -14,14 +14,13 @@ module.exports.singleStudentInfo = async (req, res) => { // get student info
 
 module.exports.addNewStudent = async (req, res) => { //add student info
     try {
-      const  s_fname = req.body.s_fname;
-      const  s_city = req.body.s_city;
-      const  s_lname = req.body.s_lname;
-      const  s_gender = req.body.s_gender;
-      const  s_number = req.body.s_number;
-      const  s_address = req.body.s_address;
-      const  coordinates = req.body.coordinates;
+      console.log(req.body)
+      const { s_fname,s_lname,s_gender,s_city,s_address,s_number, coordinates } = req.body;
 
+      let  longitude = coordinates.longitude;
+      let  latitude = coordinates.latitude;
+
+      console.log(s_city)
       const s_reg_id = req.user.id;
       const userQuery = 'SELECT * FROM student_info WHERE s_reg_id = $1';
       const existingUser = await client.query(userQuery, [s_reg_id]);
@@ -30,11 +29,11 @@ module.exports.addNewStudent = async (req, res) => { //add student info
         return res.status(400).send('Data already exists');
       }
   
-      const insertDataQuery = `INSERT INTO student_info (s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number,coordinates)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      const insertDataQuery = `INSERT INTO student_info (s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number,longitude,latitude)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9)
         RETURNING *`;
   
-      const insertDataValues = [s_address, s_reg_id, s_lname, s_fname, s_city, s_gender, s_number, coordinates];
+      const insertDataValues = [s_address, s_reg_id, s_lname, s_fname, s_number,  s_gender,s_city, longitude,latitude];
       const result = await client.query(insertDataQuery, insertDataValues);
   
       const updateUserQuery = `
@@ -55,13 +54,15 @@ module.exports.addNewStudent = async (req, res) => { //add student info
 
   module.exports.updateStudent = async (req, res) => { //update student info
     try {
-      const { s_address, s_number, s_lname, s_fname, s_city, s_gender } = req.body;
+      const { s_address, s_number, s_lname, s_fname, s_city, s_gender,coordinates } = req.body;
+      let longitude = coordinates.longitude;
+      let latitude = coordinates.latitude;
       const s_reg_id = req.user.id;
       const userQuery = 'SELECT * FROM student_info WHERE s_reg_id = $1';
       const existingUser = await client.query(userQuery, [s_reg_id]);
 
-      const insertDataQuery = 'UPDATE student_info SET s_address = $1, s_lname = $2, s_fname = $3, s_city = $4, s_gender = $5, s_numbe=$6 WHERE s_reg_id = $7 RETURNING *';
-      const insertDataValues = [s_address, s_lname, s_fname, s_city, s_gender, s_number,s_reg_id];
+      const insertDataQuery = 'UPDATE student_info SET s_address = $1, s_lname = $2, s_fname = $3, s_city = $4, s_gender = $5, s_numbe=$6,longitude=$7,latitude=$8, WHERE s_reg_id = $9 RETURNING *';
+      const insertDataValues = [s_address, s_lname, s_fname, s_city, s_gender, s_number,longitude,latitude,s_reg_id];
       const result = await client.query(insertDataQuery, insertDataValues);
       res.status(201).json({ message: 'Data added successfully' });
     } catch (error) {
@@ -70,78 +71,167 @@ module.exports.addNewStudent = async (req, res) => { //add student info
     }
   };
     
-module.exports.singleTutorInfo = async (req, res) => { //display all tutors on search screen and pagination, filters
-      try {
-        let { page, size, search } = req.query;
+// module.exports.singleTutorInfo = async (req, res) => { //display all tutors on search screen and pagination, filters
+//       try {
+//         let { page, size, search } = req.query;
     
-        if (!page) {
-          page = 1;
-        }
+//         if (!page) {
+//           page = 1;
+//         }
     
-        if (!size) {
-          size = 10;
-        }
+//         if (!size) {
+//           size = 10;
+//         }
     
-        const offset = (page - 1) * size;
+//         const offset = (page - 1) * size;
     
-        let filterConditions = [];
-        let filterValues = [];
+//         let filterConditions = [];
+//         let filterValues = [];
     
-        if (req.query.subject) {
-          filterConditions.push("tutor_info.subject = $" + (filterValues.length + 1));
-          filterValues.push(req.query.subject);
-        }
+//         if (req.query.subject) {
+//           filterConditions.push("tutor_info.subject = $" + (filterValues.length + 1));
+//           filterValues.push(req.query.subject);
+//         }
     
-        if (req.query.gender) {
-          filterConditions.push("tutor_info.t_gender = $" + (filterValues.length + 1));
-          filterValues.push(req.query.gender);
-        }
+//         if (req.query.gender) {
+//           filterConditions.push("tutor_info.t_gender = $" + (filterValues.length + 1));
+//           filterValues.push(req.query.gender);
+//         }
     
-        if (req.query.rating) {
-          filterConditions.push("reviews.rating = $" + (filterValues.length + 1));
-          filterValues.push(req.query.rating);
-        }
+//         if (req.query.rating) {
+//           filterConditions.push("reviews.rating = $" + (filterValues.length + 1));
+//           filterValues.push(req.query.rating);
+//         }
     
-        if (req.query.price) {
-          filterConditions.push("tutor_time.price = $" + (filterValues.length + 1));
-          filterValues.push(req.query.price);
-        }
-        if (search) {
-          filterConditions.push(`
-            (
-              tutor_info.t_name ILIKE $${filterValues.length + 1}
-              OR tutor_info.t_lname ILIKE $${filterValues.length + 2}
+//         if (req.query.price) {
+//           filterConditions.push("tutor_time.price = $" + (filterValues.length + 1));
+//           filterValues.push(req.query.price);
+//         }
+//         if (search) {
+//           filterConditions.push(`
+//             (
+//               tutor_info.t_name ILIKE $${filterValues.length + 1}
+//               OR tutor_info.t_lname ILIKE $${filterValues.length + 2}
               
-            )
-          `);
+//             )
+//           `);
     
-          filterValues.push(`%${search}%`);
-          filterValues.push(`%${search}%`);
-        }
+//           filterValues.push(`%${search}%`);
+//           filterValues.push(`%${search}%`);
+//         }
+        
+//         const filterClause = filterConditions.length > 0
+//           ? `WHERE ${filterConditions.join(" AND ")}`
+//           : "";
+
+//           const student_id=req.user.id;
+
+//           const query = `
+//           SELECT tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data
+//           FROM tutor_info
+//           LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
+//           LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
+//           LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
+//           ${filterClause}
+//           ${filterValues.length > 0 ? `ORDER BY ${filterValues.map((_,index) => `$${index + 1}`).join(", ")} ASC` : "ORDER BY tutor_info.t_reg_id ASC"}
+//           OFFSET $${filterValues.length + 1}::bigint
+//           LIMIT $${filterValues.length + 2}::bigint
+//         `;
+//         const result = await client.query(query, [...filterValues, offset, size]);
+//         res.status(200).json(result.rows);
+//       } catch (e) {
+//         res.status(400).send(e.message);
+//       }
+// };
+  
+module.exports.singleTutorInfo = async (req, res) => {
+  try {
+    let { page, size, search } = req.query;
+
+    if (!page) {
+      page = 1;
+    }
+
+    if (!size) {
+      size = 10;
+    }
+
+    const offset = (page - 1) * size;
+
+    let filterConditions = [];
+    let filterValues = [];
+
+    let paramIndex = 1; 
+
+    if (req.query.subject) {
+      filterConditions.push(`tutor_info.subject LIKE '%' || $${paramIndex} || '%'`);
+      filterValues.push(req.query.subject);
+      paramIndex++; // Increment paramIndex for the next parameter
+    }
     
-        const filterClause = filterConditions.length > 0
-          ? `WHERE ${filterConditions.join(" AND ")}`
-          : "";
     
-          const query = `
-          SELECT tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data
-          FROM tutor_info
-          LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
-          LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
-          LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
-          ${filterClause}
-          ${filterValues.length > 0 ? `ORDER BY ${filterValues.map((_,index) => `$${index + 1}`).join(", ")} ASC` : "ORDER BY tutor_info.t_reg_id ASC"}
-          OFFSET $${filterValues.length + 1}::bigint
-          LIMIT $${filterValues.length + 2}::bigint
-        `;
-        const result = await client.query(query, [...filterValues, offset, size]);
-        res.status(200).json(result.rows);
-      } catch (e) {
-        res.status(400).send(e.message);
-      }
+
+    if (req.query.gender) {
+      filterConditions.push(`tutor_info.t_gender = $${paramIndex}`);
+      filterValues.push(req.query.gender);
+      paramIndex++;
+    }
+
+    if (req.query.rating) {
+      filterConditions.push(`reviews.rating = $${paramIndex}`);
+      filterValues.push(req.query.rating);
+      paramIndex++;
+    }
+
+
+    if (req.query.price) {
+      // Assuming req.query.price contains the maximum price value
+      filterConditions.push(`tutor_info.price <= $${paramIndex}`);
+      filterValues.push(req.query.price);
+      paramIndex++;
+    }
+    
+
+    const student_id = req.user.id;
+
+    const subquery = `
+      SELECT t_reg_id
+      FROM reqslots
+      WHERE s_reg_id = $${paramIndex}
+    `;
+
+    const filterClause = filterConditions.length > 0
+      ? `WHERE ${filterConditions.join(" AND ")}`
+      : "";
+
+    const query = `
+    SELECT DISTINCT ON (tutor_info.t_reg_id) tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data,
+    CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
+    FROM tutor_info
+    LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
+    LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
+    LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
+    LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
+    ${filterClause}
+    ORDER BY tutor_info.t_reg_id ASC
+    OFFSET $${paramIndex + 1}::bigint
+    LIMIT $${paramIndex + 2}::bigint
+    
+    `;
+
+    const result = await client.query(query, [...filterValues, parseInt(student_id), offset, size]);
+    res.status(200).json(result.rows);
+  } catch (e) {
+    console.error(e.message);
+    res.status(400).send(e.message);
+  }
 };
+
+
+
+
   
-  
+
       module.exports.getTimes = async (req, res) => { //it will show the time table to this.addNewStudent, when student select any teacher to request
         try {
           const user_id = req.query.id;
@@ -180,7 +270,7 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
 
       module.exports.addTime = async (req, res) => { //post req by student with status pending
         try {
-          const t_reg_id = req.user.id;
+          const s_reg_id = req.user.id;
           const { id, subject, clickedSlots } = req.body;
       
           const insertedRows = [];
@@ -189,13 +279,12 @@ module.exports.singleTutorInfo = async (req, res) => { //display all tutors on s
             const [startTime, endTime] = timeRange.split(' - ')[0].split(':');
             const formattedStartTime = `${startTime}:00:00`;
             const formattedEndTime = `${endTime}:00:00`;
-            
             const reqSlotQuery = `
               INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id,status)
               VALUES ($1, $2, $3, $4, $5, $6,$7)
               RETURNING *  
             `;
-            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, t_reg_id,"pending"];
+            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, s_reg_id,"pending"];
             const reqSlotResult = await client.query(reqSlotQuery, reqSlotValues);
             insertedRows.push(reqSlotResult.rows[0]);
       

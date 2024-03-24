@@ -3,8 +3,8 @@ const csv = require('csv-parser');
 const { client } = require("../src/db")
 const bcrypt = require('bcryptjs');
 
-// const files = ['users.csv', 'student.csv', 'qualify.csv', 'tutor.csv', 'course.csv'];
-const files = ['course.csv'];
+// const files = ['users.csv', 'qualifyData.csv', 'tutor.csv',image.csv, time.csv];
+const files = ['time.csv'];
 
 async function readCsv(file) {
   return new Promise((resolve, reject) => {
@@ -28,7 +28,7 @@ async function seedData() {
     for (const file of files) {
       const data = await readCsv(file);
       console.log(`Read data from file ${file}:`, data);
-      await addNewcourse(data);
+      await addTime(data);
     }
   } catch (error) {
     console.error('Error connecting to the database:', error);
@@ -42,8 +42,8 @@ async function insertDataToDatabase(data) {
     for (const row of data) {
       const hashedPassword = await bcrypt.hash(row.password, 10);
 
-      const query = 'INSERT INTO users (name, email, password, roles, value) VALUES ($1, $2, $3, $4, $5)';
-      const values = [row.name, row.email, hashedPassword, row.roles, row.value];
+      const query = 'INSERT INTO users (name, email, password, roles, persona, qualify, image, time) VALUES ($1, $2, $3, $4, $5,$6,$7,$8)';
+      const values = [row.name, row.email, hashedPassword, row.roles, row.persona, row.qualify, row.image, row.time];
       await client.query(query, values);
     }
 
@@ -52,6 +52,39 @@ async function insertDataToDatabase(data) {
     console.error('Error seeding data:', error);
   }
 }
+
+async function addImage(data) {
+  try {
+    for (const row of data) {
+     
+
+      const query = 'INSERT INTO image (use_id, ima) VALUES ($1, $2)';
+      const values = [row.use_id, row.ima];
+      await client.query(query, values);
+    }
+
+    console.log('Data seeded successfully');
+  } catch (error) {
+    console.error('Error seeding data:', error);
+  }
+}
+
+async function addTime(data) {
+  try {
+    for (const row of data) {
+     
+
+      const query = 'INSERT INTO time_slots (user_id,day,start_time,value) VALUES ($1, $2, $3, $4)';
+      const values = [row.user_id,row.day,row.start_time,row.value];
+      await client.query(query, values);
+    }
+
+    console.log('Data seeded successfully');
+  } catch (error) {
+    console.error('Error seeding data:', error);
+  }
+}
+
 
 async function reviews(review) {
   try {
@@ -126,8 +159,8 @@ async function addNewTutor(tutorData) {
   try {
     for (const tutor of tutorData) {
       const insertData = `
-        INSERT INTO tutor_info (t_name, t_lname, t_address, t_city, t_gender, t_reg_id,number)
-        VALUES ($1, $2, $3, $4, $5, $6,$7)
+        INSERT INTO tutor_info (t_name, t_lname, t_address, t_city, t_gender, t_reg_id,number,subject,price,about,longitude,latitude)
+        VALUES ($1, $2, $3, $4, $5, $6,$7, $8, $9, $10, $11, $12)
         RETURNING *`;
       const insertValue = [
         tutor.t_name,
@@ -136,7 +169,12 @@ async function addNewTutor(tutorData) {
         tutor.t_city,
         tutor.t_gender,
         tutor.t_reg_id,
-        tutor.number
+        tutor.number,
+        tutor.subject,
+        tutor.price,
+        tutor.about,
+        tutor.longitude,
+        tutor.latitude
       ];
       await client.query(insertData, insertValue);
       console.log('Tutor data inserted');
@@ -146,20 +184,6 @@ async function addNewTutor(tutorData) {
   }
 }
 
-async function addNewcourse(courseData) {
-  try {
-    for (const course of courseData) {
-      const insertData = `
-        INSERT INTO tutor_time (t_reg_id,  course, price, date,value)
-        VALUES ($1, $2, $3, $4,$5)
-        RETURNING *`;
-      const insertValue = [course.t_reg_id, course.course, course.price,course.date,course.value];
-      await client.query(insertData, insertValue);
-      console.log('Course data inserted');
-    }
-  } catch (error) {
-    console.error('Error occurred:', error);
-  }
-}
+
 
 seedData();
