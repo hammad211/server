@@ -1,4 +1,5 @@
 const {client} = require('../db');
+const moment = require('moment');
 
 module.exports.singleStudentInfo = async (req, res) => { // get student info
   try {
@@ -195,10 +196,11 @@ module.exports.singleTutorInfo = async (req, res) => {
     const student_id = req.user.id;
 
     const subquery = `
-      SELECT t_reg_id
-      FROM reqslots
-      WHERE s_reg_id = $${paramIndex}
-    `;
+  SELECT t_reg_id
+  FROM reqslots
+  WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
+`;
+
 
     const filterClause = filterConditions.length > 0
       ? `WHERE ${filterConditions.join(" AND ")}`
@@ -216,7 +218,6 @@ module.exports.singleTutorInfo = async (req, res) => {
     ORDER BY tutor_info.t_reg_id ASC
     OFFSET $${paramIndex + 1}::bigint
     LIMIT $${paramIndex + 2}::bigint
-    
     `;
 
     const result = await client.query(query, [...filterValues, parseInt(student_id), offset, size]);
@@ -226,6 +227,7 @@ module.exports.singleTutorInfo = async (req, res) => {
     res.status(400).send(e.message);
   }
 };
+
 
 
 
@@ -268,24 +270,32 @@ module.exports.singleTutorInfo = async (req, res) => {
       };
       
 
-      module.exports.addTime = async (req, res) => { //post req by student with status pending
+      module.exports.addTime = async (req, res) => {
         try {
+          console.log(req.body);
           const s_reg_id = req.user.id;
           const { id, subject, clickedSlots } = req.body;
       
           const insertedRows = [];
+      
           for (const slot of clickedSlots) {
-            const [day, timeRange] = slot.split(' ');
-            const [startTime, endTime] = timeRange.split(' - ')[0].split(':');
-            const formattedStartTime = `${startTime}:00:00`;
-            const formattedEndTime = `${endTime}:00:00`;
+            const [day, date, timeRange] = slot.split(' ');
+      
+            // Parse date and format it as YYYY-MM-DD
+            const formattedDate = moment(date, 'MM-DD-YYYY').format('YYYY-MM-DD');
+      
+            // Split time range to get start time and end time
+            const [startTime, endTime] = timeRange.split('-');
+      
             const reqSlotQuery = `
-              INSERT INTO reqslots (day, start_time, end_time, subject, t_reg_id, s_reg_id,status)
-              VALUES ($1, $2, $3, $4, $5, $6,$7)
-              RETURNING *  
+              INSERT INTO reqslots (day, time_date, start_time, end_time, subject, t_reg_id, s_reg_id, status)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+              RETURNING *;
             `;
-            const reqSlotValues = [day, formattedStartTime, formattedEndTime, subject, id, s_reg_id,"pending"];
+      
+            const reqSlotValues = [day, formattedDate, startTime, endTime, subject, id, s_reg_id, "pending"];
             const reqSlotResult = await client.query(reqSlotQuery, reqSlotValues);
+      
             insertedRows.push(reqSlotResult.rows[0]);
       
             const updateTimeSlotQuery = `
@@ -293,7 +303,8 @@ module.exports.singleTutorInfo = async (req, res) => {
               SET value = true
               WHERE day = $1 AND start_time = $2;
             `;
-            const updateTimeSlotValues = [day, formattedStartTime];
+            
+            const updateTimeSlotValues = [day,startTime];
             await client.query(updateTimeSlotQuery, updateTimeSlotValues);
           }
       
@@ -304,50 +315,139 @@ module.exports.singleTutorInfo = async (req, res) => {
         }
       };
       
+      
+      
       //represent in dashboard of student
-      module.exports.getAllTimeSlots = async (req, res) => {
-        try {
-          const query = `
-            SELECT 
-                rs.day, 
-                TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
-                rs.subject, 
-                rs.t_reg_id,
-                rs.status, -- Include the status variable from reqslots
-                ti.*,
-                img.ima AS image_data 
-            FROM 
-                reqslots rs
-            JOIN 
-                tutor_info ti ON rs.t_reg_id = ti.t_reg_id
-            LEFT JOIN
-                image img ON ti.t_reg_id = img.use_id
-            WHERE 
-                rs.s_reg_id = $1;
-          `;
-          const values = [req.user.id]; 
-          const result = await client.query(query, values);
-          
+    //   module.exports.getAllTimeSlots = async (req, res) => {
+    //     try {
+    //         const query = `
+    //             SELECT 
+    //                 rs.day, 
+    //                 TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+    //                 rs.subject, 
+    //                 rs.t_reg_id,
+    //                 rs.status, -- Include the status variable from reqslots
+    //                 ti.*,
+    //                 img.ima AS image_data 
+    //             FROM 
+    //                 reqslots rs
+    //             JOIN 
+    //                 tutor_info ti ON rs.t_reg_id = ti.t_reg_id
+    //             LEFT JOIN
+    //                 image img ON ti.t_reg_id = img.use_id
+    //             WHERE 
+    //                 rs.s_reg_id = $1;
+    //           `;
+    //         const values = [req.user.id]; 
+    //         const result = await client.query(query, values);
+            
+    //         const groupedData = result.rows.reduce((acc, row) => {
+    //             const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
+    //             if (!acc.selectedSlots[day]) {
+    //                 acc.selectedSlots[day] = [];
+    //             }
+    //             acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); // Include status in selectedSlots
+    //             acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status, t_reg_id } }; // Include status and t_reg_id in tutorInfo
+    //             return acc;
+    //         }, { selectedSlots: {}, tutorInfo: {} });
+            
+    //         res.status(200).json({
+    //             success: true,
+    //             data: groupedData,
+    //         });
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //         res.status(500).json({ error: 'Server error occurred' });
+    //     }
+    // };
+    
+    module.exports.getAllTimeSlots = async (req, res) => {
+      try {
+          const { status } = req.params;
+          let query = `
+    SELECT 
+        rs.day, 
+        TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+        rs.subject, 
+        rs.t_reg_id,
+        rs.status,
+        ti.*,
+        img.ima AS image_data 
+    FROM 
+        reqslots rs
+    JOIN 
+        tutor_info ti ON rs.t_reg_id = ti.t_reg_id
+    LEFT JOIN
+        image img ON ti.t_reg_id = img.use_id
+    WHERE 
+        rs.s_reg_id = $1 AND (rs.status = 'pending' OR rs.status = 'accepted');
+`;
+
+          const values = [req.user.id];
+          const result = await client.query(query,values);
+  
           const groupedData = result.rows.reduce((acc, row) => {
             const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
             if (!acc.selectedSlots[day]) {
-              acc.selectedSlots[day] = [];
+                acc.selectedSlots[day] = [];
             }
             acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); // Include status in selectedSlots
-                        acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status } }; // Include status in tutorInfo
-      
+            acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status, t_reg_id } }; // Include status and t_reg_id in tutorInfo
             return acc;
-          }, { selectedSlots: {}, tutorInfo: {} });
-      
-          res.status(200).json({
+        }, { selectedSlots: {}, tutorInfo: {} });
+        
+        res.status(200).json({
             success: true,
             data: groupedData,
-          });
-        } catch (error) {
+        });      } catch (error) {
           console.error('Error:', error);
           res.status(500).json({ error: 'Server error occurred' });
-        }
-      };
+      }
+  };
+  
+  module.exports.getTimeSlotsByCompletedStatus = async (req, res) => {
+      try {
+          const query = `
+              SELECT 
+                  rs.day, 
+                  TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+                  rs.subject, 
+                  rs.t_reg_id,
+                  rs.status,
+                  ti.*,
+                  img.ima AS image_data 
+              FROM 
+                  reqslots rs
+              JOIN 
+                  tutor_info ti ON rs.t_reg_id = ti.t_reg_id
+              LEFT JOIN
+                  image img ON ti.t_reg_id = img.use_id
+              WHERE 
+                  rs.s_reg_id = $1 AND rs.status = 'completed';
+          `;
+          const values = [req.user.id];
+          const result = await client.query(query, values);
+  
+          const groupedData = result.rows.reduce((acc, row) => {
+            const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
+            if (!acc.selectedSlots[day]) {
+                acc.selectedSlots[day] = [];
+            }
+            acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status });
+            acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status, t_reg_id } }; 
+            return acc;
+        }, { selectedSlots: {}, tutorInfo: {} });
+        
+        res.status(200).json({
+            success: true,
+            data: groupedData,
+        });
+      } catch (error) {
+          console.error('Error:', error);
+          res.status(500).json({ error: 'Server error occurred' });
+      }
+  };
+  
       
       
       

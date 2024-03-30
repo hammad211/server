@@ -18,20 +18,24 @@ module.exports.getConversationId = async (req, res) => {
   }
 };
 
-module.exports.postConversation = async (req, res) => {
-  try {
-    const { sRegId,tRegId  } = req.body;
-    console.log(req.body);
-    console.log(sRegId,tRegId);
-    const insertData = 'INSERT INTO conversations (members) VALUES (ARRAY[$1::integer, $2::integer]) RETURNING *';
-    const insertValues = [tRegId, sRegId];
-    const result = await client.query(insertData, insertValues);
-    console.log(result);
-    res.status(200).send("Conversation created successfully");
-  } catch (err) {
-    res.status(500).send("Server error occurred");
-  }
-};
+
+//useless
+// module.exports.postConversation = async (req, res) => {
+//   // console.log(id);
+//   console.log("chat",req.body);
+//   try {
+//     const { sRegId,tRegId  } = req.body;
+//     console.log(req.body);
+//     console.log(sRegId,tRegId);
+//     const insertData = 'INSERT INTO conversations (members) VALUES (ARRAY[$1::integer, $2::integer]) RETURNING *';
+//     const insertValues = [tRegId, sRegId];
+//     const result = await client.query(insertData, insertValues);
+//     console.log(result);
+//     res.status(200).send("Conversation created successfully");
+//   } catch (err) {
+//     res.status(500).send("Server error occurred");
+//   }
+// };
 
 
 module.exports.postMessage = async (req, res) => {

@@ -179,6 +179,7 @@ module.exports.getSelectedSlots = async (req, res) => { // get selected slots ad
       SELECT day, TO_CHAR(start_time, 'HH24') AS start_hour, value
       FROM time_slots
       WHERE user_id = $1;
+      
     `;
     const values = [user_id];
     const result = await client.query(query, values);

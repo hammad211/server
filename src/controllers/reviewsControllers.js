@@ -3,13 +3,12 @@ const {client} = require('../db');
 module.exports.addNewReview = async (req, res) => {    //add new tutor
   
   try {
-    const comment = req.body.values.comment;
-    const rating = req.body.values.ratting;
-    const reviewId = req.body.tRegId.tRegId;
+    const comment = req.body.comment;
+    const rating = req.body.ratting;
+    const reviewId = req.body.tRegId;
     const sRegId = req.user.id;
-    const courseId = req.body.tRegId.cId;
-    const insertData = 'INSERT INTO reviews ( s_reg_id, t_reg_id, comment, rating,c_id ) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-    const insertValue = [sRegId,reviewId, comment, rating, courseId];
+    const insertData = 'INSERT INTO reviews ( s_reg_id, t_reg_id, comment, rating ) VALUES ($1, $2, $3, $4) RETURNING *';
+    const insertValue = [sRegId,reviewId, comment, rating];
     const result = await client.query(insertData, insertValue);
     res.status(201).send('review added successfully');
 

@@ -1,23 +1,26 @@
 const {client} = require ('../db');
 const value = require("../statusValues/status")
 
-
 module.exports.updateCourseRequest = async (req, res) => { // update req by teacher with status accepted
+  console.log(req.body);
   try {
     const t_reg_id = req.user.id;
-    const { matchedSlots, studentId } = req.body;
+    const { slots, id } = req.body;
 
-    for (const day in matchedSlots) {
-      for (const slotId of matchedSlots[day]) {
+    for (const day in slots) {
+      for (const slotId of slots[day]) {
         const updateTimeSlotQuery = `
           UPDATE reqslots
           SET status = 'accepted'
-          WHERE s_reg_id = $1 AND t_reg_id = $2;
-        `;
-        const updateTimeSlotValues = [studentId, t_reg_id];
+          WHERE s_reg_id = $1 AND t_reg_id = $2;`;
+        const updateTimeSlotValues = [id, t_reg_id];
         await client.query(updateTimeSlotQuery, updateTimeSlotValues);
       }
     }
+   
+    const insertData = 'INSERT INTO conversations (members) VALUES (ARRAY[$1::integer, $2::integer]) RETURNING *';
+    const insertValues = [t_reg_id, id];
+    const result = await client.query(insertData, insertValues);
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -47,7 +50,8 @@ module.exports.getCourseRequest = async (req, res) => { // Showing student reque
       JOIN
         image img ON rs.t_reg_id = img.use_id
       WHERE 
-        rs.t_reg_id = $1;
+        rs.t_reg_id = $1 AND (rs.status = 'pending' OR rs.status = 'accepted');
+
     `;
 
     const values = [t_reg_id]; 
@@ -60,10 +64,10 @@ module.exports.getCourseRequest = async (req, res) => { // Showing student reque
       }
       acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); 
   
-      acc.studentInfo = { ...acc.studentInfo, [t_reg_id]: { ...studentInfo, t_id:t_reg_id, ima, status } };
+      acc.studentInfo = { ...acc.studentInfo, [t_reg_id]: { ...studentInfo, t_reg_id, ima, status } };
       return acc;
     }, { selectedSlots: {}, studentInfo: {} });
-  
+    console.log(groupedData)
     res.status(200).json({
       success: true,
       data: groupedData,
@@ -74,29 +78,54 @@ module.exports.getCourseRequest = async (req, res) => { // Showing student reque
   }
 };
 
-//reject the request
+//reject the request by sending the id from front end
 module.exports.deleteRecordById = async (req, res) => {
+  console.log("call");
+  console.log(req.body.id);
   try {
-    const c_id = req.params.id;
-    console.log(c_id);
+    const s_reg_id = req.body.id;
+    const t_reg_id = req.user.id;
+    const deleteQuery = 'DELETE FROM reqSlots WHERE s_reg_id = $1 AND t_reg_id = $2 AND (status = \'pending\' OR status = \'accepted\') RETURNING day, start_time';
+    const deleteResult = await client.query(deleteQuery, [s_reg_id, t_reg_id]);
 
-    const query = 'DELETE FROM req_table WHERE c_id = $1 RETURNING *';
-    const result = await client.query(query, [c_id]);
+    if (deleteResult.rowCount === 0) {
+      return res.status(404).json({ error: 'No Record Found.' });}
 
-    if (result.rowCount === 1) {
-      res.status(200).json({ message: 'Record deleted successfully.', deletedRecord: result.rows[0] });
-    } else {
-      res.status(404).json({ error: 'No Record Found.' });
-    }
+    const { day, start_time } = deleteResult.rows[0];
+    console.log(day, start_time)
+    const updateQuery = 'UPDATE time_slots SET value = false WHERE day = $1 AND start_time = $2 AND user_id = $3 AND value = $4';
+    await client.query(updateQuery, [day, start_time, t_reg_id, true]);
+
+    res.status(200).json({ message: 'Record deleted successfully.' });
   } catch (error) {
-    if (error.response) {
-      console.error('Server responded with error status:', error.response.status);
-      console.error('Response data:', error.response.data);
-    } else {
-      console.error('Error setting up the request:', error.message);
-    }
+    console.error('Error deleting record:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-}
+};
+
+module.exports.endRequest = async (req, res) => {
+  console.log("endRequest called");
+  try {
+    const s_reg_id = req.body.id;
+    const t_reg_id = req.user.id;
+    const updateTimeSlotQuery = `UPDATE reqslots SET status = 'completed' WHERE s_reg_id = $1 AND t_reg_id = $2 And status = $3 RETURNING day, start_time` ;
+    const updateResult = await client.query(updateTimeSlotQuery, [s_reg_id, t_reg_id, 'accepted']);
+    console.log(updateResult.rows);
+    if (updateResult.rows === 0) {
+      return res.status(404).json({ error: 'No Record Found.' });
+    }
+    const { day, start_time } = updateResult.rows[0];
+    console.log(day, start_time);
+    const updateQuery = 'UPDATE time_slots SET value = false WHERE day = $1 AND start_time = $2 AND user_id = $3 AND value = $4';
+    await client.query(updateQuery, [day, start_time, t_reg_id, true]);
+
+    res.status(200).json({ message: 'Request Completed successfully.' });
+  } catch (error) {
+    console.error('Error deleting record:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 
 
 
