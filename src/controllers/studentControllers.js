@@ -15,7 +15,6 @@ module.exports.singleStudentInfo = async (req, res) => { // get student info
 
 module.exports.addNewStudent = async (req, res) => { //add student info
     try {
-      console.log(req.body)
       const { s_fname,s_lname,s_gender,s_city,s_address,s_number, coordinates } = req.body;
 
       let  longitude = coordinates.longitude;
@@ -46,7 +45,7 @@ module.exports.addNewStudent = async (req, res) => { //add student info
       const updateUserValues = [true,s_reg_id];
       const updatedUser = await client.query(updateUserQuery, updateUserValues);
   
-      res.status(201).json({ message: 'Data added successfully', data: true });
+      res.status(201).json({ message: 'Data Added successfully', data: true });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Server error occurred' });
@@ -72,82 +71,131 @@ module.exports.addNewStudent = async (req, res) => { //add student info
     }
   };
     
-// module.exports.singleTutorInfo = async (req, res) => { //display all tutors on search screen and pagination, filters
-//       try {
-//         let { page, size, search } = req.query;
-    
-//         if (!page) {
-//           page = 1;
-//         }
-    
-//         if (!size) {
-//           size = 10;
-//         }
-    
-//         const offset = (page - 1) * size;
-    
-//         let filterConditions = [];
-//         let filterValues = [];
-    
-//         if (req.query.subject) {
-//           filterConditions.push("tutor_info.subject = $" + (filterValues.length + 1));
-//           filterValues.push(req.query.subject);
-//         }
-    
-//         if (req.query.gender) {
-//           filterConditions.push("tutor_info.t_gender = $" + (filterValues.length + 1));
-//           filterValues.push(req.query.gender);
-//         }
-    
-//         if (req.query.rating) {
-//           filterConditions.push("reviews.rating = $" + (filterValues.length + 1));
-//           filterValues.push(req.query.rating);
-//         }
-    
-//         if (req.query.price) {
-//           filterConditions.push("tutor_time.price = $" + (filterValues.length + 1));
-//           filterValues.push(req.query.price);
-//         }
-//         if (search) {
-//           filterConditions.push(`
-//             (
-//               tutor_info.t_name ILIKE $${filterValues.length + 1}
-//               OR tutor_info.t_lname ILIKE $${filterValues.length + 2}
-              
-//             )
-//           `);
-    
-//           filterValues.push(`%${search}%`);
-//           filterValues.push(`%${search}%`);
-//         }
-        
-//         const filterClause = filterConditions.length > 0
-//           ? `WHERE ${filterConditions.join(" AND ")}`
-//           : "";
 
-//           const student_id=req.user.id;
+// module.exports.singleTutorInfo = async (req, res) => {
+//   try {
+//     let { page, size, search } = req.query;
 
-//           const query = `
-//           SELECT tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data
-//           FROM tutor_info
-//           LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
-//           LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
-//           LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
-//           ${filterClause}
-//           ${filterValues.length > 0 ? `ORDER BY ${filterValues.map((_,index) => `$${index + 1}`).join(", ")} ASC` : "ORDER BY tutor_info.t_reg_id ASC"}
-//           OFFSET $${filterValues.length + 1}::bigint
-//           LIMIT $${filterValues.length + 2}::bigint
-//         `;
-//         const result = await client.query(query, [...filterValues, offset, size]);
-//         res.status(200).json(result.rows);
-//       } catch (e) {
-//         res.status(400).send(e.message);
-//       }
+//     if (!page) {
+//       page = 1;
+//     }
+
+//     if (!size) {
+//       size = 10;
+//     }
+
+//     const offset = (page - 1) * size;
+
+//     let filterConditions = [];
+//     let filterValues = [];
+
+//     let paramIndex = 1; 
+
+//     if (req.query.subject) {
+//       filterConditions.push(`tutor_info.subject LIKE '%' || $${paramIndex} || '%'`);
+//       filterValues.push(req.query.subject);
+//       paramIndex++; // Increment paramIndex for the next parameter
+//     }
+    
+    
+
+//     if (req.query.gender) {
+//       filterConditions.push(`tutor_info.t_gender = $${paramIndex}`);
+//       filterValues.push(req.query.gender);
+//       paramIndex++;
+//     }
+
+//     if (req.query.rating) {
+//       filterConditions.push(`reviews.rating = $${paramIndex}`);
+//       filterValues.push(req.query.rating);
+//       paramIndex++;
+//     }
+
+
+//     if (req.query.price) {
+//       // Assuming req.query.price contains the maximum price value
+//       filterConditions.push(`tutor_info.price <= $${paramIndex}`);
+//       filterValues.push(req.query.price);
+//       paramIndex++;
+//     }
+    
+
+//     const student_id = req.user.id;
+
+//     const subquery = `
+//   SELECT t_reg_id
+//   FROM reqslots
+//   WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
+// `;
+
+
+//     const filterClause = filterConditions.length > 0
+//       ? `WHERE ${filterConditions.join(" AND ")}`
+//       : "";
+
+//     const query = `
+//     SELECT DISTINCT ON (tutor_info.t_reg_id) tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data,
+//     CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
+//     FROM tutor_info
+//     LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
+//     LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
+//     LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
+//     LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
+//     ${filterClause}
+//     ORDER BY tutor_info.t_reg_id ASC
+//     OFFSET $${paramIndex + 1}::bigint
+//     LIMIT $${paramIndex + 2}::bigint
+//     `;
+
+//     const result = await client.query(query, [...filterValues, parseInt(student_id), offset, size]);
+//     res.status(200).json(result.rows);
+//   } catch (e) {
+//     console.error(e.message);
+//     res.status(400).send(e.message);
+//   }
 // };
-  
+
+
+
+
+
+const { cos, sin, sqrt, atan2 } = Math;
+
+// Function to convert degrees to radians
+function toRadians(degrees) {
+  return degrees * (Math.PI / 180);
+}
+
+// Function to calculate distance using Haversine formula
+function calculateDistance(lat1, lon1, lat2, lon2,t_id) {
+  console.log(lat1, lon1, lat2, lon2)
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians( lon2 - lon1);
+  const a =
+    sin(dLat / 2) * sin(dLat / 2) +
+    cos(toRadians(lat1)) * cos(toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+  const c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  const distance = R * c;
+  return distance;
+}
+
+//get all coordinates of teacher and store in array
+const getCoordinate = async (req, res) => {
+  try {
+    const query = 'SELECT latitude, longitude, t_reg_id FROM tutor_info';
+    const result = await client.query(query);
+    console.log("get coordinate", result.rows);
+    return result.rows;
+  } catch (e) {
+    res.status(500).send(e.message);
+  }
+}
+
+
 module.exports.singleTutorInfo = async (req, res) => {
   try {
-    let { page, size, search } = req.query;
+    let { page, size, search, range } = req.query;
 
     if (!page) {
       page = 1;
@@ -157,20 +205,19 @@ module.exports.singleTutorInfo = async (req, res) => {
       size = 10;
     }
 
-    const offset = (page - 1) * size;
 
+    const offset = (page - 1) * size;
+    const student_id = req.user.id;
     let filterConditions = [];
     let filterValues = [];
 
-    let paramIndex = 1; 
+    let paramIndex = 1;
 
     if (req.query.subject) {
       filterConditions.push(`tutor_info.subject LIKE '%' || $${paramIndex} || '%'`);
       filterValues.push(req.query.subject);
       paramIndex++; // Increment paramIndex for the next parameter
     }
-    
-    
 
     if (req.query.gender) {
       filterConditions.push(`tutor_info.t_gender = $${paramIndex}`);
@@ -184,28 +231,50 @@ module.exports.singleTutorInfo = async (req, res) => {
       paramIndex++;
     }
 
-
     if (req.query.price) {
       // Assuming req.query.price contains the maximum price value
       filterConditions.push(`tutor_info.price <= $${paramIndex}`);
       filterValues.push(req.query.price);
       paramIndex++;
     }
+
+    const s_reg_id = req.user.id;
+
+    const studentCoordinatesQuery = `
+      SELECT latitude::float, longitude::float 
+      FROM student_info
+      WHERE s_reg_id = $1
+    `;
+
+    const studentCoordinatesResult = await client.query(studentCoordinatesQuery, [s_reg_id]);
+
+    if (studentCoordinatesResult.rows.length === 0) {
+      throw new Error('Student coordinates not found');
+    }
+
+    const { latitude: studentLatitude, longitude: studentLongitude } = studentCoordinatesResult.rows[0];
+
+    const tutorCoordinates = await getCoordinate();
     
-
-    const student_id = req.user.id;
-
-    const subquery = `
-  SELECT t_reg_id
-  FROM reqslots
-  WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
-`;
-
+    const distanceResults = tutorCoordinates.map(tutor => ({
+      ...tutor,
+      distance_in_km: calculateDistance(
+        studentLatitude,
+        studentLongitude,
+        tutor.latitude,
+        tutor.longitude
+      )
+    }));
 
     const filterClause = filterConditions.length > 0
       ? `WHERE ${filterConditions.join(" AND ")}`
       : "";
 
+          const subquery = `
+          SELECT t_reg_id
+          FROM reqslots
+          WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
+        `;
     const query = `
     SELECT DISTINCT ON (tutor_info.t_reg_id) tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data,
     CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
@@ -221,12 +290,49 @@ module.exports.singleTutorInfo = async (req, res) => {
     `;
 
     const result = await client.query(query, [...filterValues, parseInt(student_id), offset, size]);
-    res.status(200).json(result.rows);
+
+    result.rows.forEach(row => {
+    const matchingEntry = distanceResults.find(entry => entry.t_reg_id === row.t_reg_id);
+
+    if (matchingEntry) {
+      row.distance = matchingEntry.distance_in_km;
+  }
+});
+if (req.query.distance) {
+  const rowsToSendToFrontend = result.rows.filter(row => row.distance >= req.query.distance);
+res.status(200).json(rowsToSendToFrontend);
+}
+else {
+  res.status(200).json(result.rows);
+}
+
+
+
   } catch (e) {
     console.error(e.message);
     res.status(400).send(e.message);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
