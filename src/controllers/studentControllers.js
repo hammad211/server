@@ -299,7 +299,7 @@ module.exports.singleTutorInfo = async (req, res) => {
   }
 });
 if (req.query.distance) {
-  const rowsToSendToFrontend = result.rows.filter(row => row.distance >= req.query.distance);
+  const rowsToSendToFrontend = result.rows.filter(row => row.distance <= req.query.distance);
 res.status(200).json(rowsToSendToFrontend);
 }
 else {
