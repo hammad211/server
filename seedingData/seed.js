@@ -185,5 +185,4 @@ async function addNewTutor(tutorData) {
 }
 
 
-
 seedData();

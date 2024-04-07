@@ -185,7 +185,6 @@ const getCoordinate = async (req, res) => {
   try {
     const query = 'SELECT latitude, longitude, t_reg_id FROM tutor_info';
     const result = await client.query(query);
-    console.log("get coordinate", result.rows);
     return result.rows;
   } catch (e) {
     res.status(500).send(e.message);
@@ -313,32 +312,6 @@ else {
     res.status(400).send(e.message);
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
 
       module.exports.getTimes = async (req, res) => { //it will show the time table to this.addNewStudent, when student select any teacher to request
         try {
@@ -552,6 +525,96 @@ else {
           console.error('Error:', error);
           res.status(500).json({ error: 'Server error occurred' });
       }
+  };
+
+
+  module.exports.getAllTimeSlots3 = async (req, res) => { // Showing student request on teacher side
+    try {
+      console.log("called12", req.user.id);
+  
+      const s_reg_id = req.user.id;
+      const query = `
+        SELECT 
+          rs.day, 
+          TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
+          rs.subject, 
+          rs.s_reg_id AS s_reg_id,
+          rs.status,
+          ti.*, 
+          img.ima AS image_data
+        FROM 
+          (SELECT DISTINCT ON (t_reg_id) t_reg_id, t_name,t_lname, t_gender, t_address FROM tutor_info) ti
+        JOIN 
+          reqslots rs ON rs.t_reg_id = ti.t_reg_id
+        JOIN
+          image img ON rs.t_reg_id = img.use_id
+        WHERE 
+          rs.s_reg_id = $1;
+      `;
+  
+      const values = [s_reg_id]; 
+      const result = await client.query(query, values);
+      
+      let groupedData = { 
+        selectedSlots: {
+          pending: [],
+          accepted: [],
+          completed: []
+        }, 
+        tutorInfo: { 
+          pending: [], 
+          accepted: [], 
+          completed: [] 
+        } 
+      };
+  
+      let requestCounts = { accepted: 0, pending: 0, completed: 0 };
+  
+      // Use objects to keep track of unique student IDs for each status
+      let uniqueSRegIds = { pending: new Set(), accepted: new Set(), completed: new Set() };
+  
+      result.rows.forEach(row => {
+        const { day, start_hour, subject, t_reg_id, status, ima, s_reg_id, ...studentInfo } = row;
+        const slot = { 
+          start_hour: Number(start_hour),
+          day, 
+          subject, 
+          t_reg_id, 
+          status,
+          s_reg_id 
+        }; 
+      
+        groupedData.selectedSlots[status].push(slot);
+      
+        if (!uniqueSRegIds[status].has(t_reg_id)) {
+          // Add s_reg_id to the set of unique IDs for the current status
+          uniqueSRegIds[status].add(t_reg_id);
+      
+          groupedData.tutorInfo[status].push({ ...studentInfo, t_reg_id, ima, status, s_reg_id });
+          requestCounts[status]++;
+        }
+      });
+      
+      // Add accepted requests that might not have been counted
+      result.rows.forEach(row => {
+        const { status, t_reg_id } = row;
+        if (status === 'accepted' && !uniqueSRegIds.accepted.has(t_reg_id)) {
+          requestCounts.accepted++;
+        }
+      });
+  
+      console.log(groupedData);
+      console.log(requestCounts); 
+      
+      res.status(200).json({
+        success: true,
+        data: groupedData,
+        requestCounts: requestCounts 
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Server error occurred' });
+    }
   };
   
       
