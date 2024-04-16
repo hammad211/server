@@ -3,7 +3,6 @@ const {client} = require('../db');
 module.exports.getConversationId = async (req, res) => {
   try {
     const userId = req.params.userId;
-    console.log(userId);
     const query = `
     SELECT c.id AS conversation_id, u.id AS user_id, u.email, u.name AS name
     FROM conversations AS c
@@ -11,7 +10,6 @@ module.exports.getConversationId = async (req, res) => {
     WHERE $1 = ANY(c.members);
     `;
     const result = await client.query(query, [userId]);
-    console.log(result.rows[0]);
     res.status(200).json(result.rows);
   } catch (err) {
     res.status(500).send('Server error occurred');
@@ -40,31 +38,39 @@ module.exports.getConversationId = async (req, res) => {
 
 module.exports.postMessage = async (req, res) => {
   try {
-    const conversationId = req.body.conversationId; 
-    const senderId = req.body.senderId;
-    const messages = req.body.messages;
-    const receiver_id = req.body.receiver_id;
-    const time = req.body.formattedTime;
-    const date = req.body.formattedDate;
+    const { conversation_id, sender_id, messages, receiver_id, formattedTime, formattedDate } = req.body;
+
     if (!sender_id || !messages) {
       return res.status(400).send("Please fill all required fields.");
     }
 
+    // Convert the formattedDate to the PostgreSQL date format 'YYYY-MM-DD'
+    const [day, month, year] = formattedDate.split('/');
+    const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    // Convert the formattedTime to the PostgreSQL time format 'HH:MM:SS'
+    const time = new Date(`2000-01-01 ${formattedTime}`).toISOString().substr(11, 8);
+
     if (conversation_id && receiver_id) {
       const conversationExists = await client.query('SELECT id FROM conversations WHERE id = $1', [conversation_id]);
-    if (!conversationExists) {
+      if (!conversationExists.rows.length) {
         return res.status(400).send("The conversation doesn't exist.");
       }
 
-      const newMessage = 'INSERT INTO messages (conversation_id, sender_id, receiver_id, messages, time_value, date_value) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-      const insertValues =  [conversation_id,sender_id,receiver_id,messages,time,date];
-      const result = await client.query(newMessage, insertValues);
+      const newMessageQuery = 'INSERT INTO messages (conversation_id, sender_id, receiver_id, messages, time_value, date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+      const insertValues = [conversation_id, sender_id, receiver_id, messages, time, date];
+      const result = await client.query(newMessageQuery, insertValues);
+
       return res.status(200).json({ message: "Message sent successfully"});
-    }  
+    } else {
+      return res.status(400).send("Conversation ID and Receiver ID are required.");
+    }
   } catch (err) {
+    console.log(err);
     res.status(500).send("Server error occurred");
   }
 };
+
 
 module.exports.getMessage = async (req, res) => {
   try {
@@ -75,13 +81,13 @@ module.exports.getMessage = async (req, res) => {
     }
     else {
     const messageUserData = await Promise.all(messages.rows.map(async (message) => {
-      const user = await client.query('SELECT * FROM users WHERE id = $1', [message.receiverId]);
+      const user = await client.query('SELECT * FROM users WHERE id = $1', [message.receiver_id]);
       return {
         user: { receive: user.rows[0].id, email: user.rows[0].email, name: user.rows[0].name },
         message: message.messages,
         conversation_id : conversation_id,
         time:message.time_value,
-        date:message.date_value
+        date:message.date
       };
     }
     ));

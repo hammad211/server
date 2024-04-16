@@ -25,19 +25,20 @@ module.exports.addNewTutor = async (req, res) => {    //add new tutor
     res.status(200).json({ message: 'Info added successfully', data: value });
     
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: 'Server error occurred' });
   }
 };
 
 module.exports.updateTutor = async (req, res) => {    //update tutor
   try {
-    const { t_name, t_lname, t_address, t_city,t_gender, number,subject,price,about,longitude,latitude } = req.body;
+    const { t_name, t_lname, t_address, t_city,t_gender, number,subject,price,about,coordinates } = req.body;
+    let longitude = coordinates.longitude;
+    let latitude = coordinates.latitude;
     const t_reg_id = req.user.id;
     const userQuery = 'SELECT * FROM tutor_info WHERE t_reg_id = $1';
     const existingUser = await client.query(userQuery, [t_reg_id]);
 
-    const insertData = 'UPDATE tutor_info SET t_name = $1, t_lname = $2, t_address = $3, t_city = $4, t_gender = $5, number = $6, subject=$7, price=$8 ,about=$9, longitude=$10, latitude=$11,  WHERE t_reg_id = $7 RETURNING *';
+    const insertData = 'UPDATE tutor_info SET t_name = $1, t_lname = $2, t_address = $3, t_city = $4, t_gender = $5, number = $6, subject=$7, price=$8 ,about=$9, longitude=$10, latitude=$11  WHERE t_reg_id = $12 RETURNING *';
     const insertValue = [t_name, t_lname, t_address, t_city, t_gender, number, subject,price,about,longitude,latitude,t_reg_id];
     const result = await client.query(insertData, insertValue);
     res.status(201).json({ message: 'Info updated successfully'});
@@ -49,6 +50,7 @@ module.exports.updateTutor = async (req, res) => {    //update tutor
 module.exports.singleTutorInfo = async (req,res) =>{  //get  profile info of tutor
   try {
     const tRegId = req.user.id;
+    console.log("tuttor",req.user.id);
     const query = 'SELECT * FROM tutor_info,image WHERE t_reg_id = $1';
     const result = await client.query(query, [tRegId]);
     res.status(200).json( result.rows);
@@ -60,9 +62,7 @@ module.exports.singleTutorInfo = async (req,res) =>{  //get  profile info of tut
 module.exports.addNewQualify = async (req, res) => {    //add new qualify info
   try {
     const {  degreeName,degreeType,institue,year,city,yearEnd,image } = req.body;
-    console.log(req.body);
     const value = true;
-
     const id = req.user.id;
     const qualifyValue = "true";
     const userQuery = 'SELECT * FROM qualify_info WHERE t_degreetype = $1'
@@ -84,19 +84,19 @@ module.exports.addNewQualify = async (req, res) => {    //add new qualify info
 
 module.exports.updateQualify = async (req, res) => { //update tutor qualification
   try {
-    const { degreeName, degreeType, institue, year, city,yearEnd } = req.body;
+    const { degreeName, degreeType, institue, year, city,yearEnd,image } = req.body;
     console.log(req.body);
     const id = req.user.id;
     const Id = req.body.id;
     const updateValue = "true";
     const updateData = `
       UPDATE qualify_info
-      SET t_degree = $1, t_degreetype = $2, t_degreeyear = $3, t_institute = $4, city = $5, qualify_value=$6,year_end=$7
+      SET t_degree = $1, t_degreetype = $2, t_degreeyear = $3, t_institute = $4, city = $5, year_end=$6, image=$7
       WHERE t_reg_id = $8 AND id = $9
       RETURNING *;
     `;
 
-    const updateValues = [degreeName, degreeType, year, institue, city,updateValue,yearEnd, id,Id];
+    const updateValues = [degreeName, degreeType, year, institue, city,yearEnd,image, id,Id];
     
     const result = await client.query(updateData, updateValues);
     

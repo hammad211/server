@@ -133,7 +133,7 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
         si.*, 
         img.ima AS image_data
       FROM 
-        (SELECT DISTINCT ON (s_reg_id) s_reg_id, s_fname, s_gender, s_number, s_address FROM student_info) si
+        (SELECT DISTINCT ON (s_reg_id) s_reg_id, s_fname,s_lname, s_gender, s_number, s_address FROM student_info) si
       JOIN 
         reqslots rs ON rs.s_reg_id = si.s_reg_id
       JOIN
@@ -160,7 +160,6 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
 
     let requestCounts = { accepted: 0, pending: 0, completed: 0 };
 
-    // Use objects to keep track of unique student IDs for each status
     let uniqueSRegIds = { pending: new Set(), accepted: new Set(), completed: new Set() };
 
     result.rows.forEach(row => {
@@ -171,10 +170,10 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
         subject, 
         t_reg_id, 
         status,
-        s_reg_id // Include s_reg_id in the slot object
+        s_reg_id
       }; 
     
-      // Store the slot in the selectedSlots object based on status
+
       groupedData.selectedSlots[status].push(slot);
     
       // Check if s_reg_id is unique for the current status
@@ -196,8 +195,6 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
       }
     });
 
-    console.log(groupedData);
-    console.log(requestCounts); // Log the request counts
     
     res.status(200).json({
       success: true,

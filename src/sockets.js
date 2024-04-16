@@ -6,36 +6,34 @@ const io = require('socket.io')(5080,{
   });
 
   let userss = [];
+
   io.on('connection',socket =>{
+
     socket.on('addUser',userId =>{
         const isUser = userss.find(user=> user.userId===userId);
         if(!isUser){
         const user = {userId, socketId:socket.id} 
         userss.push(user);
         console.log("userss array", userss);
-
         io.emit('getUsers',userss);}
         })
 
-    socket.on('sendMessage', ({conversationId,senderId,message,receiverId,formattedTime,formattedDate})=>{
-        try{
-        const receive = userss.find(user=>user.userId === receiverId);
-        const sender = userss.find(user=>user.userId === senderId);
-        console.log("receiverss",receive) 
-        console.log("sender",sender)
-        console.log(conversationId,senderId,message,receiverId,formattedTime,formattedDate)
-        if(receive){
-            io.to(receive.socketId).to(sender.socketId).emit('newMessage',{
-                conversationId,senderId,message,receiverId,formattedTime,formattedDate
-            })
-        } 
-        
-        
-    }
-    catch(error){
-      console.log(error)
-    }
-    })    
+        socket.on('sendMessage', ({ conversationId, senderId, message, receiverId, formattedTime, formattedDate }) => {
+          try {
+              const receive = userss.find(user => user.userId === receiverId);
+              const sender = userss.find(user => user.userId === senderId);
+              console.log("receiverss", receive);
+              console.log("sender", sender);
+              console.log(conversationId, senderId, message, receiverId, formattedTime, formattedDate);
+              if (receive) {
+                  io.to(receive.socketId).to(sender.socketId).emit('newMessage', {
+                      conversationId, senderId, message, receiverId, formattedTime, formattedDate
+                  });
+              }
+          } catch (error) {
+              console.log(error);
+          }
+      });   
    
     socket.on('addCourse', () => {
       console.log('Received addCourse event on the server');

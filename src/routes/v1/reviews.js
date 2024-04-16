@@ -6,7 +6,7 @@ const {getReviews,addNewReview,getReviewsStudent} = require ("../../controllers/
 
 router.get('/reviewInfo',auth,getReviews);
 router.post('/reviewInfo',auth,addNewReview);
-router.get('/reviewStudent',auth,getReviewsStudent);
+router.get('/reviewStudent',getReviewsStudent);
 
 
 module.exports = router;
