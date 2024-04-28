@@ -11,6 +11,7 @@ module.exports.addNewTutor = async (req, res) => {    //add new tutor
     const existingUser = await client.query(userQuery, [tRegId]);
     
     if (existingUser.rows.length > 0) {
+      console.log("exist")
       return res.status(400).send('Data already exists');
     }
 

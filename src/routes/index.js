@@ -8,6 +8,10 @@ const search = require('./v1/search');
 const picture = require('./v1/picture');
 const reviews = require('./v1/reviews');
 const proposal = require('./v1/proposal');
+const admin = require('./v1/admin');
+const home = require('./v1/home');
+
+
 
 const router = express.Router();
 
@@ -20,6 +24,10 @@ router.use('/search', search);
 router.use('/picture', picture);
 router.use('/reviews', reviews);
 router.use('/proposal', proposal);
+router.use('/admin', admin);
+router.use('/home', home);
+
+
 
 
 module.exports = router;
