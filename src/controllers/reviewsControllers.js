@@ -5,39 +5,27 @@ module.exports.addNewReview = async (req, res) => {
     const comment = req.body.comments;
     const rating = req.body.rating;
     const tRegId = req.body.tRegId;
+    const sRegId = req.user.id;
+    // const courseId = req.body.cId;
     let courseId = 1;
 
-    const query = 'SELECT MAX(c_id) AS max_c_id FROM reqslots';
-    await client.query(query, (error, results) => {
-      if (error) {
-        console.error('Error executing query:', error);
-        return res.status(500).json({ error: 'Server error occurred' });
-      }
-      
-      if (results.rows.length > 0) {
-        const maxCId = results.rows[0].max_c_id;
-        console.log(maxCId)
-        courseId = maxCId + 1;
-        console.log("courseId",courseId)
-      }
-      
-      const sRegId = req.user.id;
-      const insertData = 'INSERT INTO reviews (s_reg_id, t_reg_id, comment, rating, c_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-      const insertValue = [sRegId, tRegId, comment, rating, courseId];
-      
-      client.query(insertData, insertValue, (error, result) => {
-        if (error) {
-          console.error('Error executing insertion query:', error);
-          return res.status(500).json({ error: 'Server error occurred' });
-        }
-        res.status(201).send('Review added successfully');
-      });
-    });
+    const insertData = 'INSERT INTO reviews (s_reg_id, t_reg_id, comment, rating, c_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+    const insertValue = [sRegId, tRegId, comment, rating, courseId];
+
+    const insertResult = await client.query(insertData, insertValue);
+
+    const updateQuery = 'UPDATE reqs_handling SET value = true WHERE c_id = $1';
+    const updateValues = [courseId];
+
+    await client.query(updateQuery, updateValues);
+
+    res.status(201).send('Review added successfully');
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: 'Server error occurred' });
   }
 };
+
 
 
 module.exports.getReviews = async (req, res) => {

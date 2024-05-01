@@ -1,33 +1,6 @@
 const {client} = require ('../db');
 const value = require("../statusValues/status")
 
-// module.exports.updateCourseRequest = async (req, res) => { // update req by teacher with status accepted
-//   try {
-//     const t_reg_id = req.user.id;
-//     const { slots, id } = req.body;
-
-//     for (const day in slots) {
-//       for (const slotId of slots[day]) {
-//         const updateTimeSlotQuery = `
-//           UPDATE reqslots
-//           SET status = 'accepted'
-//           WHERE s_reg_id = $1 AND t_reg_id = $2;`;
-//         const updateTimeSlotValues = [id, t_reg_id];
-//         await client.query(updateTimeSlotQuery, updateTimeSlotValues);
-//       }
-//     }
-   
-//     const insertData = 'INSERT INTO conversations (members) VALUES (ARRAY[$1::integer, $2::integer]) RETURNING *';
-//     const insertValues = [t_reg_id, id];
-//     const result = await client.query(insertData, insertValues);
-
-//     res.status(200).json({ success: true });
-//   } catch (error) {
-//     console.error('Error:', error);
-//     res.status(500).json({ error: 'Server error occurred' });
-//   }
-// };
-
 
 module.exports.updateCourseRequest = async (req, res) => { // update req by teacher with status accepted
   try {
@@ -66,8 +39,6 @@ module.exports.updateCourseRequest = async (req, res) => { // update req by teac
     res.status(500).json({ error: 'Server error occurred' });
   }
 };
-
-
 
 module.exports.getCourseRequest = async (req, res) => { // Showing student request on teacher side
   try {
@@ -207,8 +178,6 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
   }
 };
 
-
-
 //reject the request by sending the id from front end
 module.exports.deleteRecordById = async (req, res) => {
   console.log("call");
@@ -234,7 +203,6 @@ module.exports.deleteRecordById = async (req, res) => {
   }
 };
 
-
 module.exports.endRequest = async (req, res) => {
   console.log("endRequest called");
   try {
@@ -244,15 +212,16 @@ module.exports.endRequest = async (req, res) => {
       UPDATE reqslots 
       SET status = 'completed' 
       WHERE s_reg_id = $1 AND t_reg_id = $2 AND status = $3 
-      RETURNING day, start_time`;
+      RETURNING day, start_time, c_id`;
     const updateResult = await client.query(updateTimeSlotQuery, [s_reg_id, t_reg_id, 'accepted']);
-    console.log(updateResult.rows);
+
     if (updateResult.rows.length === 0) {
       return res.status(404).json({ error: 'No Record Found.' });
     }
+    
     const updateValues = updateResult.rows.map(row => [row.day, row.start_time]);
 
-console.log('updateValues:', updateValues);
+    const { day, start_time, c_id } = updateResult.rows[0];
 
 for (const slot of updateValues) {
   const [day, start_time] = slot;
@@ -273,9 +242,17 @@ for (const slot of updateValues) {
   }
 }
 
+const insertReviewQuery = 'INSERT INTO reqs_handling (s_reg_id, t_reg_id, c_id, value) VALUES ($1, $2, $3, $4)';
+const insertReviewValues = [s_reg_id, t_reg_id, c_id, 'false'];
+
+try {
+  await client.query(insertReviewQuery, insertReviewValues);
+} catch (error) {
+  console.error('Error inserting review:', error);
+}
+
     res.status(200).json({ message: 'Request Completed successfully.' });
   } catch (error) {
-    console.error('Error deleting record:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };

@@ -138,7 +138,6 @@ module.exports.getQualifyInfo = async (req,res) =>{  //get qualify info of tutor
 }
 
 module.exports.addTime_slot = async (req, res) => { //time table added by teacher
-  console.log(req.body)
   try { 
     const { selectedSlots } = req.body;
     const user_id = req.user.id;
@@ -209,45 +208,6 @@ module.exports.getSelectedSlots = async (req, res) => { // get selected slots ad
 };
 
 
-//extra
-// module.exports.deleteTime = async (req, res) => {    //delete the time
-//   try {
-//     const id = req.params.id;
-
-//     const deleteQuery = 'DELETE FROM tutor_time WHERE id = $1';
-//     const result = await client.query(deleteQuery, [id]);
-
-//     if (result) {
-//       return res.status(200).send("Record deleted successfully");
-//     } else {
-//       return res.status(404).send("Record not found");
-//     }
-//   } catch (err) {
-//     return res.status(500).send("Error deleting record");
-//   }
-// }
-
-// module.exports.updateTime = async (req, res) => { // update the time schedule
-//   try {
-//     const { value, course, price } = req.body;
-//     const regId = req.user.id;
-//     const qvalue="true"
-//     const checkQuery = 'SELECT * FROM tutor_time WHERE value = $1';
-//     const existingTime = await client.query(checkQuery, [value]);
-
-//     if (existingTime.rows.length === 0) {
-//       return res.status(404).json({ error: 'Time schedule not found' });
-//     }
-
-//     const updateData = 'UPDATE tutor_time SET course = $2, price = $3, WHERE value = $1 AND reg_id = $5 RETURNING *';
-//     const updateValues = [value, course, price, regId,];
-//     const result = await client.query(updateData, updateValues);
-
-//     res.status(200).json({ message: 'Time schedule updated successfully', result });
-//   } catch (error) {
-//     res.status(500).json({ error: 'Server error occurred' });
-//   }
-// }
 
 
 

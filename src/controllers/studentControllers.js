@@ -50,121 +50,32 @@ module.exports.addNewStudent = async (req, res) => { //add student info
     }
 };
 
-  module.exports.updateStudent = async (req, res) => { //update student info
-    try {
-      const { s_fname,s_lname,s_gender,s_city,s_address,s_number, coordinates } = req.body;
-      let longitude = coordinates.longitude;
-      let latitude = coordinates.latitude;
-      const s_reg_id = req.user.id;
-      const userQuery = 'SELECT * FROM student_info WHERE s_reg_id = $1';
-      const existingUser = await client.query(userQuery, [s_reg_id]);
+module.exports.updateStudent = async (req, res) => { //update student info
+  try {
+    const { s_fname,s_lname,s_gender,s_city,s_address,s_number, coordinates } = req.body;
+    let longitude = coordinates.longitude;
+    let latitude = coordinates.latitude;
+    const s_reg_id = req.user.id;
+    const userQuery = 'SELECT * FROM student_info WHERE s_reg_id = $1';
+    const existingUser = await client.query(userQuery, [s_reg_id]);
 
-      const insertDataQuery = 'UPDATE student_info SET s_address = $1, s_lname = $2, s_fname = $3, s_city = $4, s_gender = $5, s_number=$6,longitude=$7,latitude=$8 WHERE s_reg_id = $9 RETURNING *';
-      const insertDataValues = [s_gender, s_lname, s_fname, s_number, s_address, s_city,longitude,latitude,s_reg_id];
-      const result = await client.query(insertDataQuery, insertDataValues);
-      res.status(201).json({ message: 'Data added successfully' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Server error occurred' });
-    }
-  };
+    const insertDataQuery = 'UPDATE student_info SET s_address = $1, s_lname = $2, s_fname = $3, s_city = $4, s_gender = $5, s_number=$6,longitude=$7,latitude=$8 WHERE s_reg_id = $9 RETURNING *';
+    const insertDataValues = [s_gender, s_lname, s_fname, s_number, s_address, s_city,longitude,latitude,s_reg_id];
+    const result = await client.query(insertDataQuery, insertDataValues);
+    res.status(201).json({ message: 'Data added successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error occurred' });
+  }
+};
     
-
-// module.exports.singleTutorInfo = async (req, res) => {
-//   try {
-//     let { page, size, search } = req.query;
-
-//     if (!page) {
-//       page = 1;
-//     }
-
-//     if (!size) {
-//       size = 10;
-//     }
-
-//     const offset = (page - 1) * size;
-
-//     let filterConditions = [];
-//     let filterValues = [];
-
-//     let paramIndex = 1; 
-
-//     if (req.query.subject) {
-//       filterConditions.push(`tutor_info.subject LIKE '%' || $${paramIndex} || '%'`);
-//       filterValues.push(req.query.subject);
-//       paramIndex++; // Increment paramIndex for the next parameter
-//     }
-    
-    
-
-//     if (req.query.gender) {
-//       filterConditions.push(`tutor_info.t_gender = $${paramIndex}`);
-//       filterValues.push(req.query.gender);
-//       paramIndex++;
-//     }
-
-//     if (req.query.rating) {
-//       filterConditions.push(`reviews.rating = $${paramIndex}`);
-//       filterValues.push(req.query.rating);
-//       paramIndex++;
-//     }
-
-
-//     if (req.query.price) {
-//       // Assuming req.query.price contains the maximum price value
-//       filterConditions.push(`tutor_info.price <= $${paramIndex}`);
-//       filterValues.push(req.query.price);
-//       paramIndex++;
-//     }
-    
-
-//     const student_id = req.user.id;
-
-//     const subquery = `
-//   SELECT t_reg_id
-//   FROM reqslots
-//   WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
-// `;
-
-
-//     const filterClause = filterConditions.length > 0
-//       ? `WHERE ${filterConditions.join(" AND ")}`
-//       : "";
-
-//     const query = `
-//     SELECT DISTINCT ON (tutor_info.t_reg_id) tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data,
-//     CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
-//     FROM tutor_info
-//     LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
-//     LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
-//     LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
-//     LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
-//     ${filterClause}
-//     ORDER BY tutor_info.t_reg_id ASC
-//     OFFSET $${paramIndex + 1}::bigint
-//     LIMIT $${paramIndex + 2}::bigint
-//     `;
-
-//     const result = await client.query(query, [...filterValues, parseInt(student_id), offset, size]);
-//     res.status(200).json(result.rows);
-//   } catch (e) {
-//     console.error(e.message);
-//     res.status(400).send(e.message);
-//   }
-// };
-
-
-
 
 
 const { cos, sin, sqrt, atan2 } = Math;
-
-// Function to convert degrees to radians
 function toRadians(degrees) {
   return degrees * (Math.PI / 180);
 }
 
-// Function to calculate distance using Haversine formula
 function calculateDistance(lat1, lon1, lat2, lon2,t_id) {
   console.log(lat1, lon1, lat2, lon2)
   const R = 6371; // Radius of the Earth in kilometers
@@ -413,51 +324,9 @@ else {
       
       
       
-      //represent in dashboard of student
-    //   module.exports.getAllTimeSlots = async (req, res) => {
-    //     try {
-    //         const query = `
-    //             SELECT 
-    //                 rs.day, 
-    //                 TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
-    //                 rs.subject, 
-    //                 rs.t_reg_id,
-    //                 rs.status, -- Include the status variable from reqslots
-    //                 ti.*,
-    //                 img.ima AS image_data 
-    //             FROM 
-    //                 reqslots rs
-    //             JOIN 
-    //                 tutor_info ti ON rs.t_reg_id = ti.t_reg_id
-    //             LEFT JOIN
-    //                 image img ON ti.t_reg_id = img.use_id
-    //             WHERE 
-    //                 rs.s_reg_id = $1;
-    //           `;
-    //         const values = [req.user.id]; 
-    //         const result = await client.query(query, values);
-            
-    //         const groupedData = result.rows.reduce((acc, row) => {
-    //             const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
-    //             if (!acc.selectedSlots[day]) {
-    //                 acc.selectedSlots[day] = [];
-    //             }
-    //             acc.selectedSlots[day].push({ start_hour: Number(start_hour), subject, t_reg_id, status }); // Include status in selectedSlots
-    //             acc.tutorInfo = { ...acc.tutorInfo, [t_reg_id]: { ...tutorInfo, status, t_reg_id } }; // Include status and t_reg_id in tutorInfo
-    //             return acc;
-    //         }, { selectedSlots: {}, tutorInfo: {} });
-            
-    //         res.status(200).json({
-    //             success: true,
-    //             data: groupedData,
-    //         });
-    //     } catch (error) {
-    //         console.error('Error:', error);
-    //         res.status(500).json({ error: 'Server error occurred' });
-    //     }
-    // };
-    
+    // represent in dashboard of student  
     module.exports.getAllTimeSlots = async (req, res) => {
+      console.log("getAllTimeSlots");
       try {
           const { status } = req.params;
           let query = `
@@ -477,13 +346,14 @@ else {
         image img ON ti.t_reg_id = img.use_id
     WHERE 
         rs.s_reg_id = $1 AND (rs.status = 'pending' OR rs.status = 'accepted');
-`;
+     `;
 
           const values = [req.user.id];
           const result = await client.query(query,values);
   
           const groupedData = result.rows.reduce((acc, row) => {
-            const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
+          const { day, start_hour, subject, t_reg_id, status, ...tutorInfo } = row;
+
             if (!acc.selectedSlots[day]) {
                 acc.selectedSlots[day] = [];
             }
@@ -495,13 +365,15 @@ else {
         res.status(200).json({
             success: true,
             data: groupedData,
-        });      } catch (error) {
+        });      
+      } catch (error) {
           console.error('Error:', error);
           res.status(500).json({ error: 'Server error occurred' });
       }
   };
   
   module.exports.getTimeSlotsByCompletedStatus = async (req, res) => {
+    console.log("getTimeSlotsByCompletedStatus")
       try {
           const query = `
               SELECT 
@@ -545,111 +417,14 @@ else {
   };
 
 
-  // module.exports.getAllTimeSlots3 = async (req, res) => { // Showing student request on teacher side
-  //   try {
-  //     console.log("called12", req.user.id);
-  
-  //     const s_reg_id = req.user.id;
-  //     const query = `
-  //       SELECT 
-  //         rs.day, 
-  //         TO_CHAR(rs.start_time, 'HH24') AS start_hour, 
-  //         rs.subject, 
-  //         rs.s_reg_id AS s_reg_id,
-  //         rs.status,
-  //         rs.c_id,
-  //         ti.*, 
-  //         img.ima AS image_data
-  //       FROM 
-  //         (SELECT DISTINCT ON (t_reg_id) t_reg_id, t_name,t_lname, t_gender, t_address, price FROM tutor_info) ti
-  //       JOIN 
-  //         reqslots rs ON rs.t_reg_id = ti.t_reg_id
-  //       JOIN
-  //         image img ON rs.t_reg_id = img.use_id
-  //       WHERE 
-  //         rs.s_reg_id = $1;
-  //     `;
-  
-  //     const values = [s_reg_id]; 
-  //     const result = await client.query(query, values);
-      
-  //     let groupedData = { 
-  //       selectedSlots: {
-  //         pending: [],
-  //         accepted: [],
-  //         completed: []
-  //       }, 
-  //       tutorInfo: { 
-  //         pending: [], 
-  //         accepted: [], 
-  //         completed: [] 
-  //       } 
-  //     };
-  
-  //     let requestCounts = { accepted: 0, pending: 0, completed: 0 };
-  
-  //     let uniqueSRegIds = { pending: new Set(), accepted: new Set(), completed: new Set() };
-  
-  //     result.rows.forEach(row => {
-  //       const { day, start_hour, subject, t_reg_id, status, ima, s_reg_id,c_id, ...studentInfo } = row;
-  //       const slot = { 
-  //         start_hour: Number(start_hour),
-  //         day, 
-  //         subject, 
-  //         t_reg_id, 
-  //         status,
-  //         s_reg_id,
-  //         c_id 
-  //       }; 
-      
-  //       groupedData.selectedSlots[status].push(slot);
-      
-  //       if (!uniqueSRegIds[status].has(t_reg_id)) {
-  //         // Add s_reg_id to the set of unique IDs for the current status
-  //         uniqueSRegIds[status].add(t_reg_id);
-      
-  //         groupedData.tutorInfo[status].push({ ...studentInfo,c_id, t_reg_id, ima, status, s_reg_id });
-  //         requestCounts[status]++;
-  //       }
-  //     });
-      
-  //     // Add accepted requests that might not have been counted
-  //     result.rows.forEach(row => {
-  //       const { status, t_reg_id } = row;
-  //       if (status === 'accepted' && !uniqueSRegIds.accepted.has(t_reg_id)) {
-  //         requestCounts.accepted++;
-  //       }
-  //     });
-  
-  //     console.log(groupedData);
-  //     console.log(requestCounts); 
-      
-  //     res.status(200).json({
-  //       success: true,
-  //       data: groupedData,
-  //       requestCounts: requestCounts 
-  //     });
-  //   } catch (error) {
-  //     console.error('Error:', error);
-  //     res.status(500).json({ error: 'Server error occurred' });
-  //   }
-  // };
-  
-      
-      
-      
-      
-      
-//useless routes till now
-
 module.exports.getAllTimeSlots3 = async (req, res) => {
   try {
-    console.log("called12", req.user.id);
+    console.log("getAllTimeSlots3", req.user.id);
 
     const s_reg_id = req.user.id;
 
     const reviewQuery = `
-      SELECT * FROM reviews WHERE s_reg_id = $1;
+      SELECT * FROM reqs_handling WHERE s_reg_id = $1;
     `;
     const reviewValues = [s_reg_id];
     const reviewResult = await client.query(reviewQuery, reviewValues);
@@ -742,8 +517,6 @@ module.exports.getAllTimeSlots3 = async (req, res) => {
   }
 };
 
-
-
 module.exports.getTimeById = async (req, res) => {  
   const tRegId = req.body.tRegId;
   const sRegId = req.user.id;
@@ -753,7 +526,6 @@ module.exports.getTimeById = async (req, res) => {
 }    
 
 module.exports.getData = async (req, res) => {
-  console.log("getdata")
     try {
       const tRegId = req.body.tRegId;       
       const query = `
