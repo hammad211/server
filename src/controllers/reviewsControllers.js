@@ -2,12 +2,14 @@ const {client} = require('../db');
 
 module.exports.addNewReview = async (req, res) => {
   try {
+
+    console.log(req.body);
+
     const comment = req.body.comments;
     const rating = req.body.rating;
     const tRegId = req.body.tRegId;
     const sRegId = req.user.id;
-    // const courseId = req.body.cId;
-    let courseId = 1;
+    const courseId = req.body.cId;
 
     const insertData = 'INSERT INTO reviews (s_reg_id, t_reg_id, comment, rating, c_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
     const insertValue = [sRegId, tRegId, comment, rating, courseId];
