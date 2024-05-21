@@ -89,7 +89,7 @@ module.exports.getCourseRequest = async (req, res) => { // Showing student reque
   }
 };
 
-module.exports.getCourseRequest3 = async (req, res) => { // Showing student request on teacher side
+module.exports.getCourseRequest3 = async (req, res) => { 
   try {
     console.log("called12", req.user.id);
 
@@ -101,10 +101,11 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
         rs.subject, 
         rs.t_reg_id AS t_reg_id,
         rs.status,
+        rs.c_id,  -- Ensure c_id is selected
         si.*, 
         img.ima AS image_data
       FROM 
-        (SELECT DISTINCT ON (s_reg_id) s_reg_id, s_fname,s_lname, s_gender, s_number, s_address FROM student_info) si
+        (SELECT DISTINCT ON (s_reg_id) s_reg_id, s_fname, s_lname, s_gender, s_number, s_address FROM student_info) si
       JOIN 
         reqslots rs ON rs.s_reg_id = si.s_reg_id
       JOIN
@@ -131,42 +132,41 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
 
     let requestCounts = { accepted: 0, pending: 0, completed: 0 };
 
-    let uniqueSRegIds = { pending: new Set(), accepted: new Set(), completed: new Set() };
+    let uniqueCIds = { pending: new Set(), accepted: new Set(), completed: new Set() };
 
     result.rows.forEach(row => {
-      const { day, start_hour, subject, t_reg_id, status, ima, s_reg_id, ...studentInfo } = row;
+      const { day, start_hour, subject, t_reg_id, status, ima, s_reg_id, c_id, ...studentInfo } = row;
       const slot = { 
         start_hour: Number(start_hour),
         day, 
         subject, 
         t_reg_id, 
         status,
-        s_reg_id
+        s_reg_id,
+        c_id  // Include c_id in the slot object
       }; 
-    
 
       groupedData.selectedSlots[status].push(slot);
-    
-      // Check if s_reg_id is unique for the current status
-      if (!uniqueSRegIds[status].has(s_reg_id)) {
-        // Add s_reg_id to the set of unique IDs for the current status
-        uniqueSRegIds[status].add(s_reg_id);
-    
+
+      // Check if c_id is unique for the current status
+      if (!uniqueCIds[status].has(c_id)) {
+        // Add c_id to the set of unique IDs for the current status
+        uniqueCIds[status].add(c_id);
+
         // Push data into the corresponding array in tutorInfo
-        groupedData.tutorInfo[status].push({ ...studentInfo, t_reg_id, ima, status, s_reg_id });
+        groupedData.tutorInfo[status].push({ ...studentInfo, t_reg_id, ima, status, s_reg_id, c_id });
         requestCounts[status]++;
       }
     });
-    
+
     // Add accepted requests that might not have been counted
     result.rows.forEach(row => {
-      const { status, s_reg_id } = row;
-      if (status === 'accepted' && !uniqueSRegIds.accepted.has(s_reg_id)) {
+      const { status, c_id } = row;
+      if (status === 'accepted' && !uniqueCIds.accepted.has(c_id)) {
         requestCounts.accepted++;
       }
     });
 
-    
     res.status(200).json({
       success: true,
       data: groupedData,
@@ -177,6 +177,7 @@ module.exports.getCourseRequest3 = async (req, res) => { // Showing student requ
     res.status(500).json({ error: 'Server error occurred' });
   }
 };
+
 
 //reject the request by sending the id from front end
 module.exports.deleteRecordById = async (req, res) => {
