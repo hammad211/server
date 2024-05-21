@@ -13,12 +13,9 @@ module.exports.addNewReview = async (req, res) => {
 
     const insertData = 'INSERT INTO reviews (s_reg_id, t_reg_id, comment, rating, c_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
     const insertValue = [sRegId, tRegId, comment, rating, courseId];
-
     const insertResult = await client.query(insertData, insertValue);
-
     const updateQuery = 'UPDATE reqs_handling SET value = true WHERE c_id = $1';
     const updateValues = [courseId];
-
     await client.query(updateQuery, updateValues);
 
     res.status(201).send('Review added successfully');
@@ -28,12 +25,21 @@ module.exports.addNewReview = async (req, res) => {
   }
 };
 
-
-
 module.exports.getReviews = async (req, res) => {
   try {
-    const query = 'SELECT * FROM reviews WHERE s_reg_id=$1 OR t_reg_id=$1';
+    const query = `
+      SELECT reviews.*, 
+             CASE 
+               WHEN reviews.s_reg_id = $1 THEN student_info.s_Fname 
+               ELSE tutor_info.t_name 
+             END AS reviewer_name 
+      FROM reviews 
+      LEFT JOIN student_info ON reviews.s_reg_id = student_info.s_reg_id 
+      LEFT JOIN tutor_info ON reviews.t_reg_id = tutor_info.t_reg_id 
+      WHERE reviews.s_reg_id = $1 OR reviews.t_reg_id = $1
+    `;
     const result = await client.query(query, [req.user.id]);
+    
     if (result.rows.length > 0) {
       let totalRatings = 0;
       result.rows.forEach(review => {
