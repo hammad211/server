@@ -30,12 +30,19 @@ const io = require('socket.io')(5080,{
                       conversationId, senderId, message, receiverId, formattedTime, formattedDate
                   });
               }
+              else if(sender){
+                
+                  io.to(sender.socketId).emit('newMessage', {
+                      conversationId, senderId, message, receiverId, formattedTime, formattedDate
+                  });
+             
+              }
           } catch (error) {
               console.log(error);
           }
       });   
    
-    socket.on('addCourse', () => {
+    socket.on('addNewRequest', () => {
       console.log('Received addCourse event on the server');
       io.emit('getCourse');
     });

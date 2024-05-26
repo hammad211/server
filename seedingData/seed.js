@@ -4,7 +4,7 @@ const { client } = require("../src/db")
 const bcrypt = require('bcryptjs');
 
 // const files = ['users.csv', 'qualifyData.csv', 'tutor.csv',image.csv, time.csv];
-const files = ['time.csv'];
+const files = ['image.csv'];
 
 async function readCsv(file) {
   return new Promise((resolve, reject) => {
@@ -28,7 +28,7 @@ async function seedData() {
     for (const file of files) {
       const data = await readCsv(file);
       console.log(`Read data from file ${file}:`, data);
-      await addTime(data);
+      await addImage(data);
     }
   } catch (error) {
     console.error('Error connecting to the database:', error);

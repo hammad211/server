@@ -1,10 +1,10 @@
 t_reg_id,t_degree,t_degreetype,t_degreeyear,t_institute,about_me
-1,Master of Science,Engineering,2020,Institute of Technology,About me
-2,Bachelor of Arts,Arts,2018,College of Arts,About me for T_Reg_ID 37
-3,Doctor of Philosophy,Science,2022,Research University,About me for T_Reg_ID 38
-4,Bachelor of Science,Engineering,2019,Technical Institute,About me for T_Reg_ID 39
-5,Master of Arts,Arts,2021,Art College,About me for T_Reg_ID 40
-6,Bachelor of Technology,Technology,2017,Technology Institute,About me for T_Reg_ID 41
-7,Master of Science,Science,2023,Research Institute,About me for T_Reg_ID 42
-8,Doctor of Philosophy,Engineering,2022,Engineering College,About me for T_Reg_ID 43
-9,Master of Fine Arts,Fine Arts,2020,Art School,About me for T_Reg_ID 44
+4,Master of Science,Engineering,2020,Institute of Technology,About me
+5,Bachelor of Arts,Arts,2018,College of Arts,About me for T_Reg_ID 37
+6,Doctor of Philosophy,Science,2022,Research University,About me for T_Reg_ID 38
+7,Bachelor of Science,Engineering,2019,Technical Institute,About me for T_Reg_ID 39
+8,Master of Arts,Arts,2021,Art College,About me for T_Reg_ID 40
+9,Bachelor of Technology,Technology,2017,Technology Institute,About me for T_Reg_ID 41
+10,Master of Science,Science,2023,Research Institute,About me for T_Reg_ID 42
+11,Doctor of Philosophy,Engineering,2022,Engineering College,About me for T_Reg_ID 43
+12,Master of Fine Arts,Fine Arts,2020,Art School,About me for T_Reg_ID 44

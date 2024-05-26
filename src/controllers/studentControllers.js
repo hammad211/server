@@ -102,7 +102,7 @@ const getCoordinate = async (req, res) => {
 }
 
 
-// module.exports.singleTutorInfo = async (req, res) => {
+// module.exports.singleTutorInfo = async (req, res) => {3
 //   try {
 //     let { page, size, search, range } = req.query;
 

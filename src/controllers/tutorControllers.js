@@ -112,9 +112,7 @@ module.exports.updateQualify = async (req, res) => { //update tutor qualificatio
   }
 };
 
-
 module.exports.deleteQualifyInfo = async (req, res) => { // delete tutor qualify by id
-  console.log("called");
   try {
     console.log(req.params.id); // Use req.params.id instead of req.query.id
     const tRegId = req.params.id;

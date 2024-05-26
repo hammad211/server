@@ -30,8 +30,8 @@ module.exports.getReviews = async (req, res) => {
     const query = `
       SELECT reviews.*, 
              CASE 
-               WHEN reviews.s_reg_id = $1 THEN student_info.s_Fname 
-               ELSE tutor_info.t_name 
+               WHEN reviews.s_reg_id = $1 THEN tutor_info.t_name 
+               ELSE student_info.s_Fname  
              END AS reviewer_name 
       FROM reviews 
       LEFT JOIN student_info ON reviews.s_reg_id = student_info.s_reg_id 
