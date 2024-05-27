@@ -1,11 +1,12 @@
 const { Router } = require("express");
 const router = Router();
-const {  singleTutorInfo,addNewTutor, approveTutor  } = require("../../controllers/adminControllers"); 
+const {  singleTutorInfo,addNewTutor, approveTutor,approveResponse  } = require("../../controllers/adminControllers"); 
 
 // router.post("/conversation", postConversation);
 router.get("/personalInfo", singleTutorInfo);
+router.get("/response/:id", approveResponse);
 router.post("/personalInfo", addNewTutor);
-router.put("/approve", approveTutor);
+router.put("/personalInfo", approveTutor);
 
 
 

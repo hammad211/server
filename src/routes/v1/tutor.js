@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const auth = require("../../middleWares/auth");
 const validate = require("../../middleWares/validate"); 
-const {singleTutorInfo,addNewTutor,addTime_slot,getSelectedSlots, addNewQualify, getQualifyInfo,updateTutor,updateQualify,deleteQualifyInfo} = require ("../../controllers/tutorControllers")
+const {getComment, singleTutorInfo,addNewTutor,addTime_slot,getSelectedSlots, addNewQualify, getQualifyInfo,updateTutor,updateQualify,deleteQualifyInfo} = require ("../../controllers/tutorControllers")
 
 
-router.get('/personalInfo',auth,validate,singleTutorInfo);
+router.get('/comment',auth,validate,singleTutorInfo);
+router.get('/personalInfo',auth,validate,getComment);
+
 router.post('/personalInfo',auth,validate,addNewTutor);
 router.put('/personalInfo',auth,validate,updateTutor);
 

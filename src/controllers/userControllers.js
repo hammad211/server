@@ -4,6 +4,7 @@ const {client} = require('../db');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const cache = {};
+
 //refresh the token
 module.exports.refreshToken = async (req, res) => {
   try {
@@ -62,12 +63,15 @@ module.exports.login = async (req, res) => {
       { expiresIn: '24h' } 
     );
 
+    
+
     return res.status(200).json({
       user: {
         email: user.email,
         name: user.name,
         id: user.id,
         role: user.roles,
+        approve: user.approve
       },
       token: token,
       personalInfo:user.persona,
@@ -75,6 +79,7 @@ module.exports.login = async (req, res) => {
       image:user.image,
       image:user.image,
       time:user.time,
+      approve: user.approve,
       message: 'Login successful',
     });
   } catch (error) {

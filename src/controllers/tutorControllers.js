@@ -7,6 +7,10 @@ module.exports.addNewTutor = async (req, res) => {    //add new tutor
     let latitude = coordinates.latitude;
     const value = true;
     const tRegId = req.user.id;
+
+    const deleteComment = 'DELETE FROM approval WHERE t_reg_id = $1 AND profilevalue = $2';
+    const deleteResult= await client.query(deleteComment, [tRegId, profile]);
+
     const userQuery = 'SELECT * FROM tutor_info WHERE t_reg_id = $1';
     const existingUser = await client.query(userQuery, [tRegId]);
     
@@ -60,11 +64,27 @@ module.exports.singleTutorInfo = async (req,res) =>{  //get  profile info of tut
     }
 }
 
+module.exports.getComment = async (req,res) =>{  //get  profile info of tutor
+  try {
+    const tRegId = req.user.id;
+    console.log("tuttor",req.user.id);
+    const query = 'SELECT * FROM approval WHERE t_reg_id = $1';
+    const result = await client.query(query, [tRegId]);
+    res.status(200).json( result.rows);
+  } catch (e) {
+      res.status(400).send(e.message);
+    }
+}
+
 module.exports.addNewQualify = async (req, res) => {    //add new qualify info
   try {
     const {  degreeName,degreeType,institue,year,city,yearEnd,image } = req.body;
     const value = true;
     const id = req.user.id;
+
+    const deleteComment = 'DELETE FROM approval WHERE t_reg_id = $1 AND qualifyvalue = $2';
+    const deleteResult= await client.query(deleteComment, [id, qualify]);
+
     const qualifyValue = "true";
     const userQuery = 'SELECT * FROM qualify_info WHERE t_degreetype = $1'
     const insertData = 'INSERT INTO qualify_info ( t_degree,t_degreetype,t_degreeyear,t_institute,  t_reg_id,city,year_end,image ) VALUES ($1, $2, $3, $4,$5,$6,$7,$8) RETURNING *';
