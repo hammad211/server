@@ -1,5 +1,5 @@
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const config = require('config');
 const { client } = require('../db');
 
 async function auth(req, res, next) {
@@ -8,7 +8,7 @@ async function auth(req, res, next) {
   const token = tokenHeader.split(' ')[1];
 
   try {
-    const decodedToken = jwt.verify(token, config.get('jwtPrivateKey'));
+    const decodedToken = jwt.verify(token, process.env.JWT_PRIVATE_KEY);
     const userId = decodedToken.id;
 
     const checkUserQuery = 'SELECT * FROM users WHERE id = $1';
@@ -17,7 +17,7 @@ async function auth(req, res, next) {
     req.user = userResult.rows[0];
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json( 'Token expired');
+      return res.status(401).json('Token expired');
     }
     return res.status(401).json({ error: 'Invalid Token' });
   }

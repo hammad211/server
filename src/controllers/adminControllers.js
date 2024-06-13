@@ -1,7 +1,5 @@
 const {client} = require('../db');
 
-
-
 module.exports.singleTutorInfo = async (req, res) => { //get profile info of tutor
     try {
       const query = 'SELECT * FROM tutor_info JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id JOIN image ON tutor_info.t_reg_id = image.use_id JOIN users ON tutor_info.t_reg_id = users.id ';

@@ -1,24 +1,22 @@
 const { Client } = require('pg');
-const fs = require('fs');
 
-// Read the SQL script file
-// const sqlScript = fs.readFileSync('20231109085723-initialize-up.sql', 'utf8');
 
- const client = new Client({
-    user: 'postgres',
-    user: 'postgres',
-    host: 'localhost',
-    database: 'tutor_db',
-    password: '699699',
-    port: 5432,
-  });
-  
-  client.connect(function(err) {
-    if (err) throw err;
-    console.log("SQL Connected!");
-    // return client.query(sqlScript);
+// Create a new instance of the Client
+const client = new Client({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+});
 
-  });
+// Connect to the database
+client.connect(async function(err) {
+  if (err) throw err;
+  console.log("SQL Connected!");
+
+ 
+});
 
 module.exports = {
   client
