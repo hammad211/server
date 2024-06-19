@@ -154,7 +154,6 @@ module.exports.findUser = async (req, res) => {
   try {
     const { resetEmail, roles } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000);
-
     // Create JWT token with OTP, resetEmail, and roles
     const token = jwt.sign({ otp, resetEmail, roles }, process.env.JWT_RESET_KEY, { expiresIn: '30m' });
 
@@ -192,9 +191,54 @@ module.exports.findUser = async (req, res) => {
   }
 };
 
+// module.exports.findUser = async (req, res) => {
+//   console.log("finduser");
+//   try {
+//     const { resetEmail, roles } = req.body;
+//     const otp = Math.floor(100000 + Math.random() * 900000);
+
+//     // Create JWT token with OTP, resetEmail, and roles
+//     const token = jwt.sign({ otp, resetEmail, roles }, config.get('jwtResetKey'), { expiresIn: '2m' });
+
+//     // Send email with JWT token included
+//     const transporter = nodemailer.createTransport({
+//       service: "gmail",
+//       host: "smtp.gmail.com",
+//       port: 465,
+//       secure: true,
+//       auth: {
+//         user: 'hammad6991515@gmail.com',
+//         pass: 'ohzi lksp qwya lbjs'
+//       }
+//     });
+
+//     const mailOptions = {
+//       from: 'hammad6991515@gmail.com',
+//       to: resetEmail,
+//       subject: 'Password Reset OTP',
+//       text: Your OTP for password reset is: ${otp},
+//     };
+
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.error('Error:', error);
+//         return res.status(500).send({ message: 'Error sending email' });
+//       } else {
+//         console.log('Email sent:', info.response);
+//         return res.status(200).send({ message: 'User exists and email sent',storedOTP:otp, email: resetEmail, role: roles, token:token });
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Error:', error);
+//     return res.status(500).json({ error: 'Server error occurred' });
+//   }
+// };
+
+
 // Match OTP with JWT Token
 module.exports.matchOTP = (req, res) => {
   try {
+    console.log(req.body);
     const { email, roles, otp, token } = req.body;
     jwt.verify(token, process.env.JWT_RESET_KEY, (err, decoded) => {
       if (err) {
@@ -202,9 +246,11 @@ module.exports.matchOTP = (req, res) => {
         return res.status(401).send({ message: 'Invalid token' });
       }
 
+      console.log("decoded", decoded)
+
       // Extract data from decoded
-      const { otp: storedOTP, resetEmail, roles: storedRoles } = decoded;
-      if (otp == storedOTP && email == resetEmail && roles == storedRoles) {
+      const { otp, resetEmail, roles } = decoded;
+      if (otp == otp && email == resetEmail && roles == roles) {
         return res.status(200).send({ message: 'Account Match' });
       } else {
         return res.status(404).send({ message: 'Account not found' });

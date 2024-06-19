@@ -102,18 +102,11 @@ const getCoordinate = async (req, res) => {
 }
 
 
-// module.exports.singleTutorInfo = async (req, res) => {3
+// module.exports.singleTutorInfo = async (req, res) => {
 //   try {
-//     let { page, size, search, range } = req.query;
-
-//     if (!page) {
-//       page = 1;
-//     }
-
-//     if (!size) {
-//       size = 10;
-//     }
-
+//     let { page, size, subject, gender, rating, price, distance, search } = req.query;
+//     page = page || 1;
+//     size = size || 10;
 
 //     const offset = (page - 1) * size;
 //     const student_id = req.user.id;
@@ -122,30 +115,30 @@ const getCoordinate = async (req, res) => {
 
 //     let paramIndex = 1;
 
-//     if (req.query.subject) {
+//     if (subject) {
 //       filterConditions.push(`tutor_info.subject LIKE '%' || $${paramIndex} || '%'`);
-//       filterValues.push(req.query.subject);
-//       paramIndex++; // Increment paramIndex for the next parameter
+//       filterValues.push(subject);
+//       paramIndex++;
 //     }
 
-//     if (req.query.gender) {
+//     if (gender) {
 //       filterConditions.push(`tutor_info.t_gender = $${paramIndex}`);
-//       filterValues.push(req.query.gender);
+//       filterValues.push(gender);
 //       paramIndex++;
 //     }
 
-//     if (req.query.rating) {
-//       filterConditions.push(`reviews.rating = $${paramIndex}`);
-//       filterValues.push(req.query.rating);
-//       paramIndex++;
-//     }
-
-//     if (req.query.price) {
+//     if (price) {
 //       filterConditions.push(`tutor_info.price <= $${paramIndex}`);
-//       filterValues.push(req.query.price);
+//       filterValues.push(price);
 //       paramIndex++;
 //     }
 
+//     if (search) {
+//       filterConditions.push(`LOWER(CONCAT(tutor_info.t_name, ' ', tutor_info.t_lname)) LIKE LOWER('%' || $${paramIndex} || '%')`);
+//       filterValues.push(search);
+//       paramIndex++;
+//     }
+    
 //     const s_reg_id = req.user.id;
 
 //     const studentCoordinatesQuery = `
@@ -163,7 +156,7 @@ const getCoordinate = async (req, res) => {
 //     const { latitude: studentLatitude, longitude: studentLongitude } = studentCoordinatesResult.rows[0];
 
 //     const tutorCoordinates = await getCoordinate();
-    
+
 //     const distanceResults = tutorCoordinates.map(tutor => ({
 //       ...tutor,
 //       distance_in_km: calculateDistance(
@@ -178,43 +171,64 @@ const getCoordinate = async (req, res) => {
 //       ? `WHERE ${filterConditions.join(" AND ")}`
 //       : "";
 
-//           const subquery = `
-//           SELECT t_reg_id
-//           FROM reqslots
-//           WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
-//         `;
-//     const query = `
-//     SELECT DISTINCT ON (tutor_info.t_reg_id) tutor_info.*, reviews.*, qualify_info.*, img.ima AS image_data,
-//     CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
-//     FROM tutor_info
-//     LEFT JOIN reviews ON tutor_info.t_reg_id = reviews.t_reg_id
-//     LEFT JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id
-//     LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
-//     LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
-//     ${filterClause}
-//     ORDER BY tutor_info.t_reg_id ASC
-//     OFFSET $${paramIndex + 1}::bigint
-//     LIMIT $${paramIndex + 2}::bigint
+//     const subquery = `
+//       SELECT t_reg_id
+//       FROM reqslots
+//       WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
+//     `;
+//     paramIndex++;
+
+//     const reviewsCTE = `
+//       WITH reviews_agg AS (
+//         SELECT 
+//           t_reg_id,
+//           json_agg(json_build_object(
+//             'id', id,
+//             'comment', comment,
+//             'rating', rating
+//           )) AS reviews,
+//           AVG(rating::numeric) AS average_rating
+//         FROM reviews
+//         GROUP BY t_reg_id
+//       )
 //     `;
 
-//     const result = await client.query(query, [...filterValues, parseInt(student_id), offset, size]);
+//     const query = `
+//       ${reviewsCTE}
+//       SELECT 
+//         tutor_info.*,
+//         qa.*,
+//         img.ima AS image_data,
+//         ra.reviews,
+//         ra.average_rating,
+//         CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
+//       FROM tutor_info
+//       LEFT JOIN qualify_info qa ON tutor_info.t_reg_id = qa.t_reg_id
+//       LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
+//       LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
+//       LEFT JOIN reviews_agg ra ON tutor_info.t_reg_id = ra.t_reg_id
+//       ${filterClause}
+//       ORDER BY tutor_info.t_reg_id ASC
+//       OFFSET $${paramIndex}::bigint
+//       LIMIT $${paramIndex + 1}::bigint
+//     `;
 
-//     result.rows.forEach(row => {
-//     const matchingEntry = distanceResults.find(entry => entry.t_reg_id === row.t_reg_id);
+//     const result = await client.query(query, [...filterValues, s_reg_id, offset, size]);
 
-//     if (matchingEntry) {
-//       row.distance = matchingEntry.distance_in_km;
-//   }
-// });
-// if (req.query.distance) {
-//   const rowsToSendToFrontend = result.rows.filter(row => row.distance >= req.query.distance);
-//   res.status(200).json(rowsToSendToFrontend);
-// }
-// else {
-//   res.status(200).json(result.rows);
-// }
+//     const filteredRows = result.rows.filter(row => {
+//       const matchingEntry = distanceResults.find(entry => entry.t_reg_id === row.t_reg_id);
+//       if (matchingEntry) {
+//         row.distance = matchingEntry.distance_in_km;
+//       }
+//       return !distance || row.distance <= distance;
+//     });
 
-
+//     if (rating) {
+//       const ratingFilteredRows = filteredRows.filter(row => row.average_rating <= rating);
+//       res.status(200).json(ratingFilteredRows);
+//     } else {
+//       res.status(200).json(filteredRows);
+//     }
 
 //   } catch (e) {
 //     console.error(e.message);
@@ -259,7 +273,7 @@ module.exports.singleTutorInfo = async (req, res) => {
       filterValues.push(search);
       paramIndex++;
     }
-    
+
     const s_reg_id = req.user.id;
 
     const studentCoordinatesQuery = `
@@ -344,11 +358,21 @@ module.exports.singleTutorInfo = async (req, res) => {
       return !distance || row.distance <= distance;
     });
 
+    let uniqueRows = [];
+    let uniqueIds = new Set();
+
+    for (let row of filteredRows) {
+      if (!uniqueIds.has(row.t_reg_id)) {
+        uniqueIds.add(row.t_reg_id);
+        uniqueRows.push(row);
+      }
+    }
+
     if (rating) {
-      const ratingFilteredRows = filteredRows.filter(row => row.average_rating <= rating);
+      const ratingFilteredRows = uniqueRows.filter(row => row.average_rating <= rating);
       res.status(200).json(ratingFilteredRows);
     } else {
-      res.status(200).json(filteredRows);
+      res.status(200).json(uniqueRows);
     }
 
   } catch (e) {
@@ -356,16 +380,6 @@ module.exports.singleTutorInfo = async (req, res) => {
     res.status(400).send(e.message);
   }
 };
-
-
-
-
-
-
-
-
-
-
 
 
       module.exports.getTimes = async (req, res) => { //it will show the time table to this.addNewStudent, when student select any teacher to request
