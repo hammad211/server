@@ -9,7 +9,7 @@ module.exports.addNewTutor = async (req, res) => {    //add new tutor
     const tRegId = req.user.id;
 
     const deleteComment = 'DELETE FROM approval WHERE t_reg_id = $1 AND profilevalue = $2';
-    const deleteResult= await client.query(deleteComment, [tRegId, false]);
+    const deleteResult= await client.query(deleteComment, [tRegId, "profile"]);
 
     const userQuery = 'SELECT * FROM tutor_info WHERE t_reg_id = $1';
     const existingUser = await client.query(userQuery, [tRegId]);
@@ -84,7 +84,7 @@ module.exports.addNewQualify = async (req, res) => {    //add new qualify info
     const id = req.user.id;
 
     const deleteComment = 'DELETE FROM approval WHERE t_reg_id = $1 AND qualifyvalue = $2';
-    const deleteResult= await client.query(deleteComment, [id, false]);
+    const deleteResult= await client.query(deleteComment, [id, "qualify"]);
 
     const qualifyValue = "true";
     const userQuery = 'SELECT * FROM qualify_info WHERE t_degreetype = $1'

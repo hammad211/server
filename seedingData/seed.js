@@ -4,7 +4,7 @@ const { client } = require("../src/db")
 const bcrypt = require('bcryptjs');
 
 // const files = ['users.csv', 'qualifyData.csv', 'tutor.csv',image.csv, time.csv];
-const files = ['image.csv'];
+const files = ['users.csv'];
 
 async function readCsv(file) {
   return new Promise((resolve, reject) => {
@@ -28,7 +28,7 @@ async function seedData() {
     for (const file of files) {
       const data = await readCsv(file);
       console.log(`Read data from file ${file}:`, data);
-      await addImage(data);
+      await insertDataToDatabase(data);
     }
   } catch (error) {
     console.error('Error connecting to the database:', error);
@@ -39,17 +39,19 @@ async function seedData() {
 
 async function insertDataToDatabase(data) {
   try {
-    for (const row of data) {
-      const hashedPassword = await bcrypt.hash(row.password, 10);
+      for (const row of data) {
+          const hashedPassword = await bcrypt.hash(row.password, 10);
+          
+          const query = 'INSERT INTO users (name, email, password, roles, persona, qualify, image, time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)';
+          const values = [row.name, row.email, hashedPassword, row.roles, row.persona, row.qualify, row.image, row.time];
+          await client.query(query, values);
+      }
 
-      const query = 'INSERT INTO users (name, email, password, roles, persona, qualify, image, time) VALUES ($1, $2, $3, $4, $5,$6,$7,$8)';
-      const values = [row.name, row.email, hashedPassword, row.roles, row.persona, row.qualify, row.image, row.time];
-      await client.query(query, values);
-    }
-
-    console.log('Data seeded successfully');
+      console.log('Data seeded successfully');
   } catch (error) {
-    console.error('Error seeding data:', error);
+      console.error('Error seeding data:', error);
+  } finally {
+      await client.end();
   }
 }
 

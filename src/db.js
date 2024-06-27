@@ -2,6 +2,7 @@ const { Client } = require('pg');
 
 
 // Create a new instance of the Client
+
 const client = new Client({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -15,9 +16,12 @@ const client = new Client({
 
 // Connect to the database
 client.connect(async function(err) {
-  if (err) throw err;
+  if (err) {
+    console.log(err)
+  } 
+  else {
   console.log("SQL Connected!");
-
+  }
  
 });
 

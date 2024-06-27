@@ -236,8 +236,10 @@ const getCoordinate = async (req, res) => {
 //   }
 // };
 
+//
 
 module.exports.singleTutorInfo = async (req, res) => {
+  console.log("eee");
   try {
     let { page, size, subject, gender, rating, price, distance, search } = req.query;
     page = page || 1;
@@ -336,12 +338,14 @@ module.exports.singleTutorInfo = async (req, res) => {
         img.ima AS image_data,
         ra.reviews,
         ra.average_rating,
+        u.approve,
         CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
       FROM tutor_info
       LEFT JOIN qualify_info qa ON tutor_info.t_reg_id = qa.t_reg_id
       LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
       LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
       LEFT JOIN reviews_agg ra ON tutor_info.t_reg_id = ra.t_reg_id
+      LEFT JOIN users u ON tutor_info.t_reg_id = u.id
       ${filterClause}
       ORDER BY tutor_info.t_reg_id ASC
       OFFSET $${paramIndex}::bigint
@@ -380,6 +384,155 @@ module.exports.singleTutorInfo = async (req, res) => {
     res.status(400).send(e.message);
   }
 };
+
+
+
+
+//approval without value 
+// module.exports.singleTutorInfo = async (req, res) => {
+//   console.log()
+//   try {
+//     let { page, size, subject, gender, rating, price, distance, search } = req.query;
+//     page = page || 1;
+//     size = size || 10;
+
+//     const offset = (page - 1) * size;
+//     const student_id = req.user.id;
+//     let filterConditions = [];
+//     let filterValues = [];
+
+//     let paramIndex = 1;
+
+//     if (subject) {
+//       filterConditions.push(`tutor_info.subject LIKE '%' || $${paramIndex} || '%'`);
+//       filterValues.push(subject);
+//       paramIndex++;
+//     }
+
+//     if (gender) {
+//       filterConditions.push(`tutor_info.t_gender = $${paramIndex}`);
+//       filterValues.push(gender);
+//       paramIndex++;
+//     }
+
+//     if (price) {
+//       filterConditions.push(`tutor_info.price <= $${paramIndex}`);
+//       filterValues.push(price);
+//       paramIndex++;
+//     }
+
+//     if (search) {
+//       filterConditions.push(`LOWER(CONCAT(tutor_info.t_name, ' ', tutor_info.t_lname)) LIKE LOWER('%' || $${paramIndex} || '%')`);
+//       filterValues.push(search);
+//       paramIndex++;
+//     }
+
+//     const s_reg_id = req.user.id;
+
+//     const studentCoordinatesQuery = `
+//       SELECT latitude::float, longitude::float 
+//       FROM student_info
+//       WHERE s_reg_id = $1
+//     `;
+
+//     const studentCoordinatesResult = await client.query(studentCoordinatesQuery, [s_reg_id]);
+
+//     if (studentCoordinatesResult.rows.length === 0) {
+//       throw new Error('Student coordinates not found');
+//     }
+
+//     const { latitude: studentLatitude, longitude: studentLongitude } = studentCoordinatesResult.rows[0];
+
+//     const tutorCoordinates = await getCoordinate();
+
+//     const distanceResults = tutorCoordinates.map(tutor => ({
+//       ...tutor,
+//       distance_in_km: calculateDistance(
+//         studentLatitude,
+//         studentLongitude,
+//         tutor.latitude,
+//         tutor.longitude
+//       )
+//     }));
+
+//     const filterClause = filterConditions.length > 0
+//       ? `WHERE ${filterConditions.join(" AND ")}`
+//       : "";
+
+//     const subquery = `
+//       SELECT t_reg_id
+//       FROM reqslots
+//       WHERE s_reg_id = $${paramIndex} AND status IN ('pending', 'accepted')
+//     `;
+//     paramIndex++;
+
+//     const reviewsCTE = `
+//       WITH reviews_agg AS (
+//         SELECT 
+//           t_reg_id,
+//           json_agg(json_build_object(
+//             'id', id,
+//             'comment', comment,
+//             'rating', rating
+//           )) AS reviews,
+//           AVG(rating::numeric) AS average_rating
+//         FROM reviews
+//         GROUP BY t_reg_id
+//       )
+//     `;
+
+//     const query = `
+//       ${reviewsCTE}
+//       SELECT 
+//         tutor_info.*,
+//         qa.*,
+//         img.ima AS image_data,
+//         ra.reviews,
+//         ra.average_rating,
+//         CASE WHEN reqslot.t_reg_id IS NOT NULL THEN TRUE ELSE FALSE END AS matched_reqslot
+//       FROM tutor_info
+//       LEFT JOIN qualify_info qa ON tutor_info.t_reg_id = qa.t_reg_id
+//       LEFT JOIN image img ON tutor_info.t_reg_id = img.use_id
+//       LEFT JOIN (${subquery}) AS reqslot ON tutor_info.t_reg_id = reqslot.t_reg_id
+//       LEFT JOIN reviews_agg ra ON tutor_info.t_reg_id = ra.t_reg_id
+//       ${filterClause}
+//       ORDER BY tutor_info.t_reg_id ASC
+//       OFFSET $${paramIndex}::bigint
+//       LIMIT $${paramIndex + 1}::bigint
+//     `;
+
+//     const result = await client.query(query, [...filterValues, s_reg_id, offset, size]);
+
+//     const filteredRows = result.rows.filter(row => {
+//       const matchingEntry = distanceResults.find(entry => entry.t_reg_id === row.t_reg_id);
+//       if (matchingEntry) {
+//         row.distance = matchingEntry.distance_in_km;
+//       }
+//       return !distance || row.distance <= distance;
+//     });
+
+//     let uniqueRows = [];
+//     let uniqueIds = new Set();
+
+//     for (let row of filteredRows) {
+//       if (!uniqueIds.has(row.t_reg_id)) {
+//         uniqueIds.add(row.t_reg_id);
+//         uniqueRows.push(row);
+//       }
+//     }
+
+//     if (rating) {
+//       const ratingFilteredRows = uniqueRows.filter(row => row.average_rating <= rating);
+//       res.status(200).json(ratingFilteredRows);
+//     } else {
+//       res.status(200).json(uniqueRows);
+//     }
+
+//   } catch (e) {
+//     console.error(e.message);
+//     res.status(400).send(e.message);
+//   }
+// };
 
 
       module.exports.getTimes = async (req, res) => { //it will show the time table to this.addNewStudent, when student select any teacher to request
@@ -480,7 +633,7 @@ module.exports.singleTutorInfo = async (req, res) => {
       
     // represent in dashboard of student  
     module.exports.getAllTimeSlots = async (req, res) => {
-      console.log("getAllTimeSlots");
+      console.log("getAllTimeSlotskkkk");
       try {
           const { status } = req.params;
           let query = `
@@ -530,7 +683,7 @@ module.exports.singleTutorInfo = async (req, res) => {
 
 module.exports.getAllTimeSlots3 = async (req, res) => {
   try {
-    console.log("getAllTimeSlots3", req.user.id);
+    console.log("getAllTimeSlots33", req.user.id);
 
     const s_reg_id = req.user.id;
 

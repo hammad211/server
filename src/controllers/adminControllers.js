@@ -1,14 +1,29 @@
 const {client} = require('../db');
 
-module.exports.singleTutorInfo = async (req, res) => { //get profile info of tutor
-    try {
-      const query = 'SELECT * FROM tutor_info JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id JOIN image ON tutor_info.t_reg_id = image.use_id JOIN users ON tutor_info.t_reg_id = users.id ';
-      const result = await client.query(query);
-      res.status(200).json(result.rows);
-    } catch (e) {
-      res.status(400).send(e.message);
-    }
+module.exports.singleTutorInfo = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        tutor_info.*,
+        qualify_info.*,
+        image.ima AS image_tutor,
+        qualify_info.image AS qualify_info_image,
+        users.*
+      FROM 
+        tutor_info
+      JOIN qualify_info ON tutor_info.t_reg_id = qualify_info.t_reg_id 
+      JOIN image ON tutor_info.t_reg_id = image.use_id 
+      JOIN users ON tutor_info.t_reg_id = users.id
+    `;
+    const result = await client.query(query);
+    res.status(200).json(result.rows);
+  } catch (e) {
+    console.log(e);
+    res.status(404).send(e.message);
   }
+};
+
+
 
   module.exports.approveResponse = async (req, res) => {
     const t_reg_id = req.params.id;

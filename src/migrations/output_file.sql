@@ -1,5 +1,5 @@
 --
--- PostgreSQL database dump
+-- postgresSQL database dump
 --
 
 -- Dumped from database version 16.2
@@ -498,6 +498,6 @@ ALTER TABLE ONLY public.time_slots
 
 
 --
--- PostgreSQL database dump complete
+-- postgresQL database dump complete
 --
 

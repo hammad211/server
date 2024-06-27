@@ -1,10 +1,10 @@
-name,email,password,roles,persona,qualify,image,time
-Yusuf Ali, abc1@example.com, password1, teacher, true,true,true,true
-Fatima Ahmed, abc2@example.com, password2, teacher, true,true,true,true
-Aisha Rahman, abc3@example.com, password3, teacher, true,true,true,true
-Ibrahim Hassan, abc4@example.com, password4, teacher, true,true,true,true
-Leila Ahmad, abc5@example.com, password5, teacher, true,true,true,true
-Mustafa Bakir, abc6@example.com, password6, teacher, true,true,true,true
-Zahra Khattak, abc7@example.com, password7, teacher, true,true,true,true
-Ahmad Khan, abc8@example.com, password8, teacher, true,true,true,true
-Sofia Malik, abc9@example.com, password9, teacher, true,true,true,true
+name,email,password,roles,persona,qualify,image,time,approve
+Yusuf Ali, abc1@example.com,password1, teacher, true,true,true,true,true
+Fatima Ahmed, abc2@example.com,password2, teacher, true,true,true,true,true
+Aisha Rahman, abc3@example.com,password3, teacher, true,true,true,true,true
+Ibrahim Hassan, abc4@example.com,password4, teacher, true,true,true,true,true
+Leila Ahmad, abc5@example.com,password5, teacher, true,true,true,true,true
+Mustafa Bakir, abc6@example.com,password6, teacher, true,true,true,true,true
+Zahra Khattak, abc7@example.com,password7, teacher, true,true,true,true,true
+Ahmad Khan, abc8@example.com,password8, teacher, true,true,true,true,true
+Sofia Malik, abc9@example.com,password9, teacher, true,true,true,true,true

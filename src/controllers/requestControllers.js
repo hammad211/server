@@ -186,21 +186,42 @@ module.exports.deleteRecordById = async (req, res) => {
   try {
     const s_reg_id = req.body.id;
     const t_reg_id = req.user.id;
-    const deleteQuery = 'DELETE FROM reqSlots WHERE s_reg_id = $1 AND t_reg_id = $2 AND (status = \'pending\' OR status = \'accepted\') RETURNING day, start_time';
+    const deleteQuery =
+      "DELETE FROM reqSlots WHERE s_reg_id = $1 AND t_reg_id = $2 AND (status = 'pending' OR status = 'accepted') RETURNING day, start_time";
     const deleteResult = await client.query(deleteQuery, [s_reg_id, t_reg_id]);
 
     if (deleteResult.rowCount === 0) {
-      return res.status(404).json({ error: 'No Record Found.' });}
+      return res.status(404).json({ error: "No Record Found." });
+    }
 
-    const { day, start_time } = deleteResult.rows[0];
-    console.log(day, start_time)
-    const updateQuery = 'UPDATE time_slots SET value = false WHERE day = $1 AND start_time = $2 AND user_id = $3 AND value = $4';
-    await client.query(updateQuery, [day, start_time, t_reg_id, true]);
+    const updateValues = deleteResult.rows.map((row) => [
+      row.day,
+      row.start_time,
+    ]);
 
-    res.status(200).json({ message: 'Record deleted successfully.' });
+    for (const slot of updateValues) {
+      const [day, start_time] = slot;
+
+      // Check if start_time is defined
+      if (start_time) {
+        const formattedStartTime = start_time;
+        const query = `
+      UPDATE time_slots 
+      SET value = false 
+      WHERE user_id = $1 AND day = $2 AND start_time = $3 AND value = $4
+      RETURNING *;
+    `;
+        const values = [t_reg_id, day, formattedStartTime, true];
+        await client.query(query, values);
+      } else {
+        console.error("Invalid start_time:", slot);
+      }
+    }
+
+    res.status(200).json({ message: "Record deleted successfully." });
   } catch (error) {
-    console.error('Error deleting record:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error deleting record:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 

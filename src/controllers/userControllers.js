@@ -39,15 +39,84 @@ module.exports.refreshToken = async (req, res) => {
 };
 
 // Login member
+// module.exports.login = async (req, res) => {
+//   try {
+//     const { email, password, role } = req.body;
+//     console.log(req.body);
+//     const userQuery = 'SELECT * FROM users WHERE email = $1 AND roles = $2';
+//     const userResult = await client.query(userQuery, [email, role]);
+
+//     if (userResult.rows.length === 0) {
+//       return res.status(401).json({ message: 'User do not Exist' });
+//     }
+
+//     const user = userResult.rows[0];
+//     const isValid = await bcrypt.compare(password, user.password);
+
+//     if (!isValid) {
+//       return res.status(401).send({ message: 'Invalid Password' });
+//     }
+
+//     const token = jwt.sign(
+//       { id: user.id, name: user.name },
+//       process.env.JWT_PRIVATE_KEY,
+//       { expiresIn: '24h' }
+//     );
+
+//     return res.status(200).json({
+//       user: {
+//         email: user.email,
+//         name: user.name,
+//         id: user.id,
+//         role: user.roles,
+//         approve: user.approve
+//       },
+//       token: token,
+//       personalInfo: user.persona,
+//       qualifyInfo: user.qualify,
+//       image: user.image,
+//       time: user.time,
+//       approve: user.approve,
+//       message: 'Login successful',
+//     });
+//   } catch (error) {
+//     return res.status(500).send({ message: 'Server error occurred' });
+//   }
+// };
+
+
 module.exports.login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
     console.log(req.body);
+
+    // Check if the email and password match the admin credentials in .env
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (email === adminEmail && password === adminPassword && role === "admin") {
+      const token = jwt.sign(
+        { email: adminEmail, role: 'admin' },
+        process.env.JWT_PRIVATE_KEY,
+        { expiresIn: '24h' }
+      );
+
+      return res.status(200).json({
+        user: {
+          email: adminEmail,
+          role: 'admin',
+        },
+        token: token,
+        message: 'Admin login successful',
+      });
+    }
+
+    else {
     const userQuery = 'SELECT * FROM users WHERE email = $1 AND roles = $2';
     const userResult = await client.query(userQuery, [email, role]);
 
     if (userResult.rows.length === 0) {
-      return res.status(401).json({ message: 'User do not Exist' });
+      return res.status(401).json({ message: 'User does not exist' });
     }
 
     const user = userResult.rows[0];
@@ -69,7 +138,7 @@ module.exports.login = async (req, res) => {
         name: user.name,
         id: user.id,
         role: user.roles,
-        approve: user.approve
+        approve: user.approve,
       },
       token: token,
       personalInfo: user.persona,
@@ -79,10 +148,12 @@ module.exports.login = async (req, res) => {
       approve: user.approve,
       message: 'Login successful',
     });
-  } catch (error) {
+  }} catch (error) {
+    console.log(error)
     return res.status(500).send({ message: 'Server error occurred' });
   }
 };
+
 
 // Add new member
 module.exports.Signup = async (req, res) => {
